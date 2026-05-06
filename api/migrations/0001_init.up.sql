@@ -38,6 +38,7 @@ CREATE TABLE expenses (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id     UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     payer_id     UUID NOT NULL REFERENCES users(id),
+    created_by   UUID NOT NULL REFERENCES users(id),
     amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
     currency     CHAR(3) NOT NULL DEFAULT 'USD',
     description  TEXT NOT NULL,

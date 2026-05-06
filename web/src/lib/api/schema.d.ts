@@ -587,6 +587,13 @@ export interface components {
             mode?: components["schemas"]["SplitMode"];
             /** @description Must be supplied together with `mode`. */
             splits?: components["schemas"]["SplitInput"][];
+            /**
+             * Format: date-time
+             * @description When the expense was incurred (independent of when it was recorded).
+             *     Defaults to the creation time if omitted on create, then immutable
+             *     unless explicitly set here.
+             */
+            incurred_at?: string;
         };
         Expense: {
             /** Format: uuid */
@@ -599,6 +606,13 @@ export interface components {
             currency: string;
             /** Format: uuid */
             payer_id: string;
+            /**
+             * Format: uuid
+             * @description User who recorded the expense. Distinct from `payer_id` (who fronted
+             *     the money) — any group member may create an expense on behalf of any
+             *     other member, and the history attributes the action to this user.
+             */
+            created_by: string;
             /** Format: date-time */
             incurred_at: string;
             /** Format: date-time */

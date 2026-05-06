@@ -899,11 +899,18 @@ components:
           minItems: 1
           items: { $ref: "#/components/schemas/SplitInput" }
           description: Must be supplied together with `mode`.
+        incurred_at:
+          type: string
+          format: date-time
+          description: |
+            When the expense was incurred (independent of when it was recorded).
+            Defaults to the creation time if omitted on create, then immutable
+            unless explicitly set here.
 
     Expense:
       type: object
       required:
-        [id, group_id, description, amount_cents, currency, payer_id, incurred_at, created_at, splits, category_id]
+        [id, group_id, description, amount_cents, currency, payer_id, created_by, incurred_at, created_at, splits, category_id]
       properties:
         id: { type: string, format: uuid }
         group_id: { type: string, format: uuid }
@@ -911,6 +918,13 @@ components:
         amount_cents: { type: integer, format: int64 }
         currency: { type: string }
         payer_id: { type: string, format: uuid }
+        created_by:
+          type: string
+          format: uuid
+          description: |
+            User who recorded the expense. Distinct from `payer_id` (who fronted
+            the money) — any group member may create an expense on behalf of any
+            other member, and the history attributes the action to this user.
         incurred_at: { type: string, format: date-time }
         created_at: { type: string, format: date-time }
         category_id: { type: string, format: uuid }

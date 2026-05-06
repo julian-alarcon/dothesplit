@@ -2,6 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
 import SplitEditor from "@/components/SplitEditor.astro";
+import DatePicker from "@/components/DatePicker.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id } = Astro.params as { id: string };
@@ -40,6 +41,10 @@ const moneyFmt = new Intl.NumberFormat(undefined, {
 const format = (cents: number) => moneyFmt.format(cents / 100);
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
+// Default the create form to today (UTC) so the rendered <input type="date">
+// matches whatever the user sees in the expense list.
+const todayISO = new Date().toISOString().slice(0, 10);
 ---
 
 <Base title={group.name}>
@@ -188,7 +193,8 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
           defaultSplit={group.default_split ?? []}
         />
       </div>
-      <div class="flex justify-end">
+      <div class="flex items-center justify-end gap-2">
+        <DatePicker name="incurred_at" value={todayISO} variant="compact" ariaLabel="Pick date" />
         <button type="submit" class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900">
           Add expense
         </button>
@@ -241,5 +247,6 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
   <script>
     import "@/scripts/category-picker.ts";
     import "@/scripts/split-editor.ts";
+    import "@/scripts/date-picker.ts";
   </script>
 </Base>

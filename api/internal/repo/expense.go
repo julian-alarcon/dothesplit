@@ -17,6 +17,7 @@ type Expense struct {
 	ID          uuid.UUID
 	GroupID     uuid.UUID
 	PayerID     uuid.UUID
+	CreatedBy   uuid.UUID
 	CategoryID  uuid.UUID
 	AmountCents int64
 	Currency    string
@@ -48,10 +49,10 @@ func (r *ExpenseRepo) CreateWithSplits(ctx context.Context, e *Expense) error {
 	defer tx.Rollback(ctx)
 
 	err = tx.QueryRow(ctx, `
-		INSERT INTO expenses (group_id, payer_id, category_id, amount_cents, currency, description, incurred_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO expenses (group_id, payer_id, created_by, category_id, amount_cents, currency, description, incurred_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at
-	`, e.GroupID, e.PayerID, e.CategoryID, e.AmountCents, e.Currency, e.Description, e.IncurredAt).
+	`, e.GroupID, e.PayerID, e.CreatedBy, e.CategoryID, e.AmountCents, e.Currency, e.Description, e.IncurredAt).
 		Scan(&e.ID, &e.CreatedAt)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func (r *ExpenseRepo) CreateWithSplits(ctx context.Context, e *Expense) error {
 // ListByGroup returns non-deleted expenses with their splits, newest first.
 func (r *ExpenseRepo) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]Expense, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, group_id, payer_id, category_id, amount_cents, currency, description, incurred_at, created_at
+		SELECT id, group_id, payer_id, created_by, category_id, amount_cents, currency, description, incurred_at, created_at
 		FROM expenses
 		WHERE group_id = $1 AND deleted_at IS NULL
 		ORDER BY incurred_at DESC, created_at DESC
@@ -82,7 +83,7 @@ func (r *ExpenseRepo) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]Exp
 	var exps []Expense
 	for rows.Next() {
 		var e Expense
-		if err := rows.Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CategoryID, &e.AmountCents,
+		if err := rows.Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CreatedBy, &e.CategoryID, &e.AmountCents,
 			&e.Currency, &e.Description, &e.IncurredAt, &e.CreatedAt); err != nil {
 			return nil, err
 		}
@@ -123,9 +124,9 @@ func (r *ExpenseRepo) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]Exp
 func (r *ExpenseRepo) FindByID(ctx context.Context, id uuid.UUID) (*Expense, error) {
 	var e Expense
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, group_id, payer_id, category_id, amount_cents, currency, description, incurred_at, created_at, deleted_at
+		SELECT id, group_id, payer_id, created_by, category_id, amount_cents, currency, description, incurred_at, created_at, deleted_at
 		FROM expenses WHERE id = $1
-	`, id).Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CategoryID, &e.AmountCents, &e.Currency,
+	`, id).Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CreatedBy, &e.CategoryID, &e.AmountCents, &e.Currency,
 		&e.Description, &e.IncurredAt, &e.CreatedAt, &e.DeletedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -177,6 +178,7 @@ func (r *ExpenseRepo) Update(
 	amountCents *int64,
 	categoryID *uuid.UUID,
 	payerID *uuid.UUID,
+	incurredAt *time.Time,
 	newSplits []Split,
 ) (*Expense, error) {
 	tx, err := r.pool.Begin(ctx)
@@ -187,9 +189,9 @@ func (r *ExpenseRepo) Update(
 
 	var e Expense
 	err = tx.QueryRow(ctx, `
-		SELECT id, group_id, payer_id, category_id, amount_cents, currency, description, incurred_at, created_at, deleted_at
+		SELECT id, group_id, payer_id, created_by, category_id, amount_cents, currency, description, incurred_at, created_at, deleted_at
 		FROM expenses WHERE id = $1 FOR UPDATE
-	`, id).Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CategoryID, &e.AmountCents, &e.Currency,
+	`, id).Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CreatedBy, &e.CategoryID, &e.AmountCents, &e.Currency,
 		&e.Description, &e.IncurredAt, &e.CreatedAt, &e.DeletedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -213,6 +215,17 @@ func (r *ExpenseRepo) Update(
 	if payerID != nil && *payerID != e.PayerID {
 		revisions = append(revisions, struct{ field, oldV, newV string }{"payer_id", e.PayerID.String(), payerID.String()})
 		e.PayerID = *payerID
+	}
+	if incurredAt != nil && !incurredAt.Equal(e.IncurredAt) {
+		// Store as RFC3339 UTC so old/new round-trips through Time.Parse on
+		// the frontend. Truncating to the wire precision keeps idempotent
+		// re-saves from generating spurious revision rows.
+		oldStr := e.IncurredAt.UTC().Format(time.RFC3339)
+		newStr := incurredAt.UTC().Format(time.RFC3339)
+		if oldStr != newStr {
+			revisions = append(revisions, struct{ field, oldV, newV string }{"incurred_at", oldStr, newStr})
+			e.IncurredAt = *incurredAt
+		}
 	}
 
 	existingSplits, err := fetchSplitsForUpdate(ctx, tx, id)
@@ -264,9 +277,9 @@ func (r *ExpenseRepo) Update(
 	}
 
 	if _, err := tx.Exec(ctx, `
-		UPDATE expenses SET description = $2, amount_cents = $3, category_id = $4, payer_id = $5
+		UPDATE expenses SET description = $2, amount_cents = $3, category_id = $4, payer_id = $5, incurred_at = $6
 		WHERE id = $1
-	`, id, e.Description, e.AmountCents, e.CategoryID, e.PayerID); err != nil {
+	`, id, e.Description, e.AmountCents, e.CategoryID, e.PayerID, e.IncurredAt); err != nil {
 		return nil, err
 	}
 

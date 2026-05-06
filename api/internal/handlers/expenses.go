@@ -130,6 +130,7 @@ func (s *Server) UpdateExpense(c *gin.Context) {
 		AmountCents: req.AmountCents,
 		CategoryID:  req.CategoryId,
 		PayerID:     req.PayerId,
+		IncurredAt:  req.IncurredAt,
 	}
 	if req.Mode != nil {
 		m := service.SplitMode(*req.Mode)
@@ -239,6 +240,7 @@ func toAPIExpense(e *repo.Expense) apigen.Expense {
 		Id:          e.ID,
 		GroupId:     e.GroupID,
 		PayerId:     e.PayerID,
+		CreatedBy:   e.CreatedBy,
 		CategoryId:  e.CategoryID,
 		AmountCents: e.AmountCents,
 		Currency:    e.Currency,

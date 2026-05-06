@@ -475,6 +475,40 @@ func TestGoldenPath(t *testing.T) {
 	last := revs[len(revs)-1]
 	require.Equal(t, "payer_id", last["field"])
 
+	// --- incurred_at on update ---
+	// Set the bus expense to a specific historical date and verify the
+	// revision row captures it. created_at must NOT change.
+	preCreatedAt := upd["created_at"].(string)
+	newDate := "2025-01-15T12:00:00Z"
+	resp, withDate := request(t, "PATCH", base+"/v1/expenses/"+busID, map[string]any{
+		"incurred_at": newDate,
+	}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode, withDate)
+	require.Equal(t, newDate, withDate["incurred_at"])
+	require.Equal(t, preCreatedAt, withDate["created_at"], "created_at must remain immutable")
+
+	// Revision log gets a new 'incurred_at' row.
+	resp, revs = requestList(t, "GET", base+"/v1/expenses/"+busID+"/revisions", nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	foundDate := false
+	for _, rv := range revs {
+		if rv["field"] == "incurred_at" {
+			foundDate = true
+			require.Contains(t, rv["new_value"], "2025-01-15")
+		}
+	}
+	require.True(t, foundDate, "expected an 'incurred_at' revision row")
+
+	// Re-PATCH with the same value → no new revision row.
+	preLen := len(revs)
+	resp, _ = request(t, "PATCH", base+"/v1/expenses/"+busID, map[string]any{
+		"incurred_at": newDate,
+	}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	resp, revs = requestList(t, "GET", base+"/v1/expenses/"+busID+"/revisions", nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, preLen, len(revs), "no-op date PATCH should not append a revision")
+
 	// --- Non-equal splits on update ---
 	// Switch to explicit percent mode: 70/30 on a 2000-cent expense.
 	resp, updSplits := request(t, "PATCH", base+"/v1/expenses/"+busID, map[string]any{

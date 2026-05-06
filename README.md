@@ -54,9 +54,10 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Allow Remove members of a group by the creator/owner. If the user is not creator of the group at least allow leaving the group
-- Group owner can change the owner of the group
 - Frontend UI for **recurring expenses** (the backend + worker are already there).
+  - Allow daily, weekly, each 2 weeks, monthly and yearly
+  - As this is related with date, this can be set close or related to the section of changing the date of a expense
+- add a new temporal recurring each 30 seconds just for test as this will be deleted
 - Themes
   - Use Inter font (in local to avoid calling thirt party entities)
 - **Settlements UI**: list past settlements per group; today you can only record them.

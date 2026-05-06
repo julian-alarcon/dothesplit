@@ -1,0 +1,140 @@
+---
+// Shared date-picker UI. The trigger is a calendar icon-button with the
+// currently-selected day rendered inside it; clicking opens a <dialog> with
+// a custom month-grid calendar. Writes YYYY-MM-DD into a hidden input named
+// `name` so the SSR handler stays unchanged.
+//
+// Variants:
+//   - "default": full-width pill with the icon + formatted date label.
+//   - "compact": just the icon-button, sized to sit next to a sibling button.
+//
+// All dynamic logic lives in web/src/scripts/date-picker.ts, which the page
+// importing this component must also include.
+
+interface Props {
+  name: string;
+  value: string; // YYYY-MM-DD
+  caption?: string; // optional secondary line (only rendered for default variant)
+  variant?: "default" | "compact";
+  ariaLabel?: string; // override label for the compact icon-only button
+}
+
+const {
+  name,
+  value,
+  caption,
+  variant = "default",
+  ariaLabel = "Pick date",
+} = Astro.props as Props;
+const day = Number(value.slice(8, 10)) || 1;
+const isCompact = variant === "compact";
+---
+
+<div class:list={["relative", isCompact ? "inline-block" : "flex flex-col gap-1"]} data-date-picker data-input-name={name}>
+  <input type="hidden" name={name} value={value} data-date-value />
+
+  {isCompact ? (
+    <button
+      type="button"
+      data-date-open
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-300 bg-white hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+    >
+      <span class="relative block h-7 w-7" aria-hidden="true">
+        <svg viewBox="0 0 28 28" class="absolute inset-0 h-7 w-7 text-neutral-600 dark:text-neutral-300" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="6" width="22" height="19" rx="2.5" />
+          <line x1="3" y1="11" x2="25" y2="11" />
+          <line x1="9" y1="3.5" x2="9" y2="7.5" stroke-linecap="round" />
+          <line x1="19" y1="3.5" x2="19" y2="7.5" stroke-linecap="round" />
+        </svg>
+        <span
+          data-date-day
+          class="absolute inset-x-0 top-[12px] flex h-[14px] items-center justify-center text-[10px] font-semibold leading-none text-neutral-700 dark:text-neutral-200"
+        >{day}</span>
+      </span>
+    </button>
+  ) : (
+    <div class="flex items-center justify-between gap-3 rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950">
+      <button
+        type="button"
+        data-date-open
+        class="flex items-center gap-2 text-left text-sm hover:opacity-80"
+      >
+        <span class="relative inline-block h-7 w-7" aria-hidden="true">
+          <svg viewBox="0 0 28 28" class="absolute inset-0 h-7 w-7 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="6" width="22" height="19" rx="2.5" />
+            <line x1="3" y1="11" x2="25" y2="11" />
+            <line x1="9" y1="3.5" x2="9" y2="7.5" stroke-linecap="round" />
+            <line x1="19" y1="3.5" x2="19" y2="7.5" stroke-linecap="round" />
+          </svg>
+          <span
+            data-date-day
+            class="absolute inset-x-0 top-[12px] flex h-[14px] items-center justify-center text-[10px] font-semibold leading-none text-neutral-700 dark:text-neutral-200"
+          >{day}</span>
+        </span>
+        <span data-date-label class="font-medium"></span>
+      </button>
+    </div>
+  )}
+  {caption && !isCompact && (
+    <span class="text-xs text-neutral-500">{caption}</span>
+  )}
+
+  <dialog
+    data-date-dialog
+    class="fixed inset-0 m-auto w-full max-w-sm rounded-md border border-neutral-200 bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+  >
+    <div class="flex flex-col gap-4 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-medium">Pick date</h3>
+        <button
+          type="button"
+          data-date-cancel
+          aria-label="Close"
+          class="rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <h4 class="text-sm font-medium" data-cal-title>—</h4>
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            data-cal-prev
+            aria-label="Previous month"
+            class="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >‹</button>
+          <button
+            type="button"
+            data-cal-next
+            aria-label="Next month"
+            class="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >›</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-7 gap-1 text-center text-xs text-neutral-500" data-cal-weekdays></div>
+      <div class="grid grid-cols-7 gap-1" data-cal-grid></div>
+
+      <div class="flex justify-between gap-2">
+        <button
+          type="button"
+          data-date-today
+          class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          data-date-cancel
+          class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </dialog>
+</div>

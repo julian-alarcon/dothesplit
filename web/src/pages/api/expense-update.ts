@@ -43,6 +43,11 @@ export const POST: APIRoute = async ({ request, url, redirect }) => {
   if (categoryID) body.category_id = categoryID;
   const payerID = (form.get("payer_id") ?? "").toString().trim();
   if (payerID) body.payer_id = payerID;
+  const incurredAt = (form.get("incurred_at") ?? "").toString().trim();
+  // Same noon-UTC anchor as the create flow.
+  if (incurredAt && /^\d{4}-\d{2}-\d{2}$/.test(incurredAt)) {
+    body.incurred_at = `${incurredAt}T12:00:00Z`;
+  }
 
   const splits = parseSplitsJSON(form.get("splits_json"));
   if (splits) {

@@ -107,6 +107,7 @@ func (s *ExpenseService) Create(ctx context.Context, actorID uuid.UUID, in Creat
 	e := &repo.Expense{
 		GroupID:     in.GroupID,
 		PayerID:     in.PayerID,
+		CreatedBy:   actorID,
 		CategoryID:  cat.ID,
 		AmountCents: in.AmountCents,
 		Currency:    in.Currency,
@@ -145,13 +146,14 @@ type UpdateExpenseInput struct {
 	PayerID     *uuid.UUID
 	Mode        *SplitMode
 	Splits      []SplitInput
+	IncurredAt  *time.Time
 }
 
 // Update edits description / amount / category / payer / splits on an expense.
 // Any group member may update; the edit history records who made each change.
 // Every changed field appends an expense_revisions row.
 func (s *ExpenseService) Update(ctx context.Context, actorID, expenseID uuid.UUID, in UpdateExpenseInput) (*repo.Expense, error) {
-	if in.Description == nil && in.AmountCents == nil && in.CategoryID == nil && in.PayerID == nil && in.Mode == nil && in.Splits == nil {
+	if in.Description == nil && in.AmountCents == nil && in.CategoryID == nil && in.PayerID == nil && in.Mode == nil && in.Splits == nil && in.IncurredAt == nil {
 		return nil, fmt.Errorf("%w: nothing to update", ErrBadSplit)
 	}
 	if in.AmountCents != nil && *in.AmountCents <= 0 {
@@ -209,7 +211,7 @@ func (s *ExpenseService) Update(ctx context.Context, actorID, expenseID uuid.UUI
 		}
 	}
 
-	return s.exps.Update(ctx, expenseID, actorID, in.Description, in.AmountCents, in.CategoryID, in.PayerID, resolved)
+	return s.exps.Update(ctx, expenseID, actorID, in.Description, in.AmountCents, in.CategoryID, in.PayerID, in.IncurredAt, resolved)
 }
 
 // ListRevisions returns the full edit history of an expense (oldest first).

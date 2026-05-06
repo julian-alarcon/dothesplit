@@ -13,6 +13,7 @@ export const POST: APIRoute = async ({ request, url, redirect }) => {
   const payerID = String(form.get("payer_id") ?? "");
   const description = String(form.get("description") ?? "");
   const categoryID = (form.get("category_id") ?? "").toString().trim();
+  const incurredAtRaw = (form.get("incurred_at") ?? "").toString().trim();
 
   const { mode, splits } = parseSplitsJSON(form.get("splits_json"));
 
@@ -24,6 +25,11 @@ export const POST: APIRoute = async ({ request, url, redirect }) => {
     splits,
   };
   if (categoryID) body.category_id = categoryID;
+  // <input type="date"> emits "YYYY-MM-DD". Anchor at noon UTC to dodge
+  // timezone edge cases that would push the displayed date a day off.
+  if (incurredAtRaw && /^\d{4}-\d{2}-\d{2}$/.test(incurredAtRaw)) {
+    body.incurred_at = `${incurredAtRaw}T12:00:00Z`;
+  }
 
   await fetch(`${internalBase}/v1/groups/${groupID}/expenses`, {
     method: "POST",
