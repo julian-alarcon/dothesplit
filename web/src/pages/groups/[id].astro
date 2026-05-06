@@ -32,6 +32,17 @@ const isCreator = group.created_by === Astro.locals.user?.id;
 const settingsOpen = Astro.url.searchParams.get("settings") === "1";
 const showSettingsError = Astro.url.searchParams.get("settings_error") === "1";
 
+const isPair = group.members.length === 2;
+const pairMembers = isPair ? group.members : [];
+const defaultSplit = group.default_split ?? [];
+const hasDefaultSplit = defaultSplit.length === 2;
+const dsBPByUser = new Map<string, number>();
+for (const e of defaultSplit) dsBPByUser.set(e.user_id, e.basis_points);
+const pairPrefill = pairMembers.map((m) => ({
+  member: m,
+  percent: ((dsBPByUser.get(m.user_id) ?? 5000) / 100).toString(),
+}));
+
 const nameByUserID = new Map<string, string>();
 const memberByID = new Map(group.members.map((m) => [m.user_id, m]));
 for (const m of group.members) nameByUserID.set(m.user_id, m.display_name);
@@ -131,7 +142,16 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
               </li>
             ))}
           </ul>
-          <form method="POST" action={`/api/group-members?id=${id}`} class="flex gap-2">
+          {isPair && hasDefaultSplit && (
+            <p class="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+              Adding a 3rd member will clear the pinned default split. New expenses will fall back to an equal split until you set a new default.
+            </p>
+          )}
+          <form
+            method="POST"
+            action={`/api/group-members?id=${id}`}
+            class="flex gap-2"
+          >
             <input
               type="email"
               name="email"
@@ -145,6 +165,71 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
           </form>
           <p class="mt-1 text-xs text-neutral-500">The invitee must already be registered.</p>
         </div>
+      </div>
+
+      <div class="mt-8 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Default split
+        </h3>
+        <p class="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
+          {!isPair
+            ? "Only available for 2-member groups. New expenses default to an equal split."
+            : hasDefaultSplit
+              ? "New expenses prefill with this percentage split. The split editor still lets you change it per-expense."
+              : "Pin a percentage split (e.g. 60/40) to prefill new expenses. Cleared automatically if a 3rd member joins."}
+        </p>
+        <fieldset disabled={!isPair} class="contents">
+          <form
+            method="POST"
+            action={`/api/group-default-split?id=${id}`}
+            class="flex flex-col gap-2"
+          >
+            <input type="hidden" name="action" value="set" />
+            {(isPair ? pairPrefill : group.members.slice(0, 2).map((m) => ({ member: m, percent: "50" }))).map((p, i) => (
+              <div class="flex items-center gap-2 text-sm">
+                <span class="flex-1">{p.member.display_name}</span>
+                <input type="hidden" name={`member_id_${i + 1}`} value={p.member.user_id} />
+                <input
+                  type="number"
+                  name={`percent_${i + 1}`}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  required
+                  value={p.percent}
+                  disabled={!isPair}
+                  class="w-20 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm tabular-nums disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-950"
+                />
+                <span class="text-neutral-500">%</span>
+              </div>
+            ))}
+            <p class="text-xs text-neutral-500">Must sum to 100.</p>
+            <div class="flex gap-2">
+              <button
+                type="submit"
+                disabled={!isPair}
+                class="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+              >
+                {hasDefaultSplit ? "Update default" : "Pin default"}
+              </button>
+            </div>
+          </form>
+          {hasDefaultSplit && isPair && (
+            <form
+              method="POST"
+              action={`/api/group-default-split?id=${id}`}
+              class="mt-2"
+            >
+              <input type="hidden" name="action" value="clear" />
+              <button
+                type="submit"
+                class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+              >
+                Clear default
+              </button>
+            </form>
+          )}
+        </fieldset>
       </div>
 
       {isCreator && (
@@ -301,6 +386,7 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
           members={group.members}
           currency={currency}
           currentUserId={Astro.locals.user?.id}
+          defaultSplit={group.default_split ?? []}
         />
       </div>
       <div class="flex justify-end">

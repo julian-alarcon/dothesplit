@@ -267,6 +267,61 @@ func TestGoldenPath(t *testing.T) {
 		map[string]any{"email": "ghost@test.dev"}, cookieA)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 
+	// --- Default split (2-member group) ---
+	// Pin a 60/40 default; should round-trip on the GET.
+	resp, _ = request(t, "PATCH", base+"/v1/groups/"+groupID, map[string]any{
+		"default_split": []map[string]any{
+			{"user_id": userA["id"], "basis_points": 6000},
+			{"user_id": userB["id"], "basis_points": 4000},
+		},
+	}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	resp, listed := requestList(t, "GET", base+"/v1/groups", nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var thisGroup map[string]any
+	for _, g := range listed {
+		if g["id"] == groupID {
+			thisGroup = g
+		}
+	}
+	require.NotNil(t, thisGroup)
+	ds := thisGroup["default_split"].([]any)
+	require.Len(t, ds, 2)
+
+	// Sum != 10000 → 400.
+	resp, _ = request(t, "PATCH", base+"/v1/groups/"+groupID, map[string]any{
+		"default_split": []map[string]any{
+			{"user_id": userA["id"], "basis_points": 5000},
+			{"user_id": userB["id"], "basis_points": 4000},
+		},
+	}, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Adding a 3rd member auto-clears the default.
+	_, cookieD := registerUser(t, base, "d@test.dev", "passwordpassword", "Dora")
+	_ = cookieD
+	resp, _ = request(t, "POST", base+"/v1/groups/"+groupID+"/members",
+		map[string]any{"email": "d@test.dev"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	resp, listed = requestList(t, "GET", base+"/v1/groups", nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	for _, g := range listed {
+		if g["id"] == groupID {
+			require.Nil(t, g["default_split"], "default_split should auto-clear when group grows past 2")
+		}
+	}
+
+	// Pinning a default on a 3-member group → 400.
+	resp, _ = request(t, "PATCH", base+"/v1/groups/"+groupID, map[string]any{
+		"default_split": []map[string]any{
+			{"user_id": userA["id"], "basis_points": 6000},
+			{"user_id": userB["id"], "basis_points": 4000},
+		},
+	}, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
 	// --- Expenses: equal split ---
 	resp, e1 := request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
 		"description":  "Hotel",

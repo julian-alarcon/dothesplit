@@ -437,6 +437,17 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             members: components["schemas"]["GroupMember"][];
+            /**
+             * @description Optional 2-member percentage split that prefills the create-expense form.
+             *     Automatically cleared by the server when the group grows past 2 members.
+             */
+            default_split?: components["schemas"]["DefaultSplitEntry"][];
+        };
+        DefaultSplitEntry: {
+            /** Format: uuid */
+            user_id: string;
+            /** @description 0..10000; the two entries must sum to exactly 10000. */
+            basis_points: number;
         };
         GroupMember: {
             /** Format: uuid */
@@ -467,6 +478,11 @@ export interface components {
         UpdateGroupRequest: {
             name?: string;
             default_currency?: string;
+            /**
+             * @description Set the default 2-member split. Pass an empty array (or null) to clear it.
+             *     Only valid when the group has exactly 2 members.
+             */
+            default_split?: components["schemas"]["DefaultSplitEntry"][] | null;
         };
         AddMemberRequest: {
             /** Format: email */

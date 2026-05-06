@@ -43,6 +43,25 @@ function parseInitial(raw: string | undefined): InitialSplit[] {
   }
 }
 
+interface DefaultSplitEntry {
+  user_id: string;
+  basis_points: number;
+}
+
+function parseDefault(raw: string | undefined): DefaultSplitEntry[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (s): s is DefaultSplitEntry =>
+        typeof s?.user_id === "string" && typeof s?.basis_points === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
 function formatCents(cents: number, currency: string): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -88,6 +107,7 @@ function setupEditor(root: HTMLElement) {
 
   const members = parseMembers(root.dataset.members);
   const initial = parseInitial(root.dataset.initial);
+  const groupDefault = parseDefault(root.dataset.default);
   const currency = root.dataset.currency ?? "EUR";
   const currentUserID = root.dataset.currentUser ?? "";
 
@@ -124,8 +144,27 @@ function setupEditor(root: HTMLElement) {
     return Math.round(v * 100);
   }
 
+  // hasUsableDefault: the group has a 2-entry default and both entries refer
+  // to current members. (Belt-and-suspenders — backend already auto-clears
+  // when membership grows past 2, but the UI shouldn't blow up otherwise.)
+  function hasUsableDefault(): boolean {
+    if (groupDefault.length !== 2 || members.length !== 2) return false;
+    const memberIDs = new Set(members.map((m) => m.id));
+    return groupDefault.every((e) => memberIDs.has(e.user_id));
+  }
+
   function initFromInitial() {
     if (initial.length === 0) {
+      if (hasUsableDefault()) {
+        const byID = new Map(groupDefault.map((e) => [e.user_id, e.basis_points]));
+        state = members.map((m) => ({
+          userID: m.id,
+          included: true,
+          value: byID.get(m.id) ?? 0,
+        }));
+        mode = "percent";
+        return;
+      }
       state = members.map((m) => ({ userID: m.id, included: true, value: 0 }));
       mode = "equal";
       return;
@@ -400,7 +439,9 @@ function setupEditor(root: HTMLElement) {
 
   // Initial render + auto-commit so create flows have a valid payload ready.
   initFromInitial();
-  if (!hasInitial) prefillForMode();
+  // Don't prefill if initFromInitial already loaded values (from initialSplits
+  // or from the group's default_split) — that would clobber them.
+  if (!hasInitial && !hasUsableDefault()) prefillForMode();
   if (hasInitial) {
     renderSummary();
   } else {

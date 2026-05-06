@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ var (
 	ErrInviteeNotFound = errors.New("invitee is not registered")
 	ErrNotCreator      = errors.New("only the group creator can perform this action")
 	ErrBadCurrency     = errors.New("default_currency must be a 3-letter code")
+	ErrBadDefaultSplit = errors.New("invalid default_split")
 )
 
 // DefaultGroupCurrency is used when a group is created without an explicit currency.
@@ -54,32 +56,60 @@ func (s *GroupService) Create(ctx context.Context, name, defaultCurrency string,
 	return g, members, nil
 }
 
-// Update applies a partial update (name and/or default_currency). Any group member may update.
-func (s *GroupService) Update(ctx context.Context, groupID, actorID uuid.UUID, name, defaultCurrency *string) (*repo.Group, []repo.GroupMember, error) {
+// UpdateGroupInput captures partial-update fields. nil pointer = leave unchanged.
+// For DefaultSplit: pointer to nil/empty slice clears it; pointer to a 2-entry
+// slice replaces it.
+type UpdateGroupInput struct {
+	Name            *string
+	DefaultCurrency *string
+	DefaultSplit    *[]repo.DefaultSplitEntry
+}
+
+// Update applies a partial update. Any group member may update.
+func (s *GroupService) Update(ctx context.Context, groupID, actorID uuid.UUID, in UpdateGroupInput) (*repo.Group, []repo.GroupMember, error) {
 	if err := s.RequireMember(ctx, groupID, actorID); err != nil {
 		return nil, nil, err
 	}
-	if name == nil && defaultCurrency == nil {
+	if in.Name == nil && in.DefaultCurrency == nil && in.DefaultSplit == nil {
 		return nil, nil, errors.New("nothing to update")
 	}
-	if name != nil {
-		trimmed := strings.TrimSpace(*name)
+	if in.Name != nil {
+		trimmed := strings.TrimSpace(*in.Name)
 		if trimmed == "" {
 			return nil, nil, errors.New("name cannot be empty")
 		}
-		name = &trimmed
+		in.Name = &trimmed
 	}
-	if defaultCurrency != nil {
-		cur, err := normalizeCurrency(*defaultCurrency)
+	if in.DefaultCurrency != nil {
+		cur, err := normalizeCurrency(*in.DefaultCurrency)
 		if err != nil {
 			return nil, nil, err
 		}
 		if cur == "" {
 			return nil, nil, ErrBadCurrency
 		}
-		defaultCurrency = &cur
+		in.DefaultCurrency = &cur
 	}
-	g, err := s.groups.Update(ctx, groupID, name, defaultCurrency)
+	if in.DefaultSplit != nil {
+		split := *in.DefaultSplit
+		if len(split) > 0 {
+			members, err := s.groups.ListMembers(ctx, groupID)
+			if err != nil {
+				return nil, nil, err
+			}
+			if len(members) != 2 {
+				return nil, nil, fmt.Errorf("%w: only valid for 2-member groups", ErrBadDefaultSplit)
+			}
+			if err := validateDefaultSplit(split, members); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	g, err := s.groups.Update(ctx, groupID, repo.UpdateInput{
+		Name:            in.Name,
+		DefaultCurrency: in.DefaultCurrency,
+		DefaultSplit:    in.DefaultSplit,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -88,6 +118,35 @@ func (s *GroupService) Update(ctx context.Context, groupID, actorID uuid.UUID, n
 		return nil, nil, err
 	}
 	return g, members, nil
+}
+
+func validateDefaultSplit(split []repo.DefaultSplitEntry, members []repo.GroupMember) error {
+	if len(split) != 2 {
+		return fmt.Errorf("%w: must contain exactly 2 entries", ErrBadDefaultSplit)
+	}
+	memberIDs := map[uuid.UUID]bool{}
+	for _, m := range members {
+		memberIDs[m.UserID] = true
+	}
+	seen := map[uuid.UUID]bool{}
+	var sum int64
+	for _, e := range split {
+		if !memberIDs[e.UserID] {
+			return fmt.Errorf("%w: user is not a group member", ErrBadDefaultSplit)
+		}
+		if seen[e.UserID] {
+			return fmt.Errorf("%w: duplicate user", ErrBadDefaultSplit)
+		}
+		if e.BasisPoints < 0 || e.BasisPoints > 10000 {
+			return fmt.Errorf("%w: basis_points must be 0..10000", ErrBadDefaultSplit)
+		}
+		seen[e.UserID] = true
+		sum += e.BasisPoints
+	}
+	if sum != 10000 {
+		return fmt.Errorf("%w: basis_points must sum to 10000", ErrBadDefaultSplit)
+	}
+	return nil
 }
 
 // Delete removes the group. Only the creator may delete it. Cascades via FK.
@@ -149,6 +208,8 @@ func (s *GroupService) ShareAnyGroup(ctx context.Context, a, b uuid.UUID) (bool,
 
 // AddMember looks up the invitee by email_hash; 404 if unregistered.
 // Only an existing group member may add others.
+// If the group had a pinned default_split (only valid for 2 members), it is
+// silently cleared once the membership grows past 2.
 func (s *GroupService) AddMember(ctx context.Context, groupID, actorID uuid.UUID, email string) (*repo.GroupMember, error) {
 	if err := s.RequireMember(ctx, groupID, actorID); err != nil {
 		return nil, err
@@ -160,7 +221,20 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, actorID uuid.UUID
 	if err != nil {
 		return nil, err
 	}
-	return s.groups.AddMember(ctx, groupID, invitee.ID)
+	m, err := s.groups.AddMember(ctx, groupID, invitee.ID)
+	if err != nil {
+		return nil, err
+	}
+	members, err := s.groups.ListMembers(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	if len(members) > 2 {
+		if err := s.groups.ClearDefaultSplit(ctx, groupID); err != nil {
+			return nil, err
+		}
+	}
+	return m, nil
 }
 
 // Get returns a group + its members, enforcing membership.

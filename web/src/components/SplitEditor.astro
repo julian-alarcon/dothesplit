@@ -16,19 +16,32 @@ interface InitialSplit {
   share_cents: number;
 }
 
+interface DefaultSplitEntry {
+  user_id: string;
+  basis_points: number;
+}
+
 interface Props {
   members: Member[];
   currency: string;
   currentUserId?: string;
   initialSplits?: InitialSplit[];
+  defaultSplit?: DefaultSplitEntry[];
 }
 
-const { members, currency, currentUserId, initialSplits = [] } = Astro.props as Props;
+const {
+  members,
+  currency,
+  currentUserId,
+  initialSplits = [],
+  defaultSplit = [],
+} = Astro.props as Props;
 
 const membersJSON = JSON.stringify(
   members.map((m) => ({ id: m.user_id, name: m.display_name })),
 );
 const initialJSON = JSON.stringify(initialSplits);
+const defaultJSON = JSON.stringify(defaultSplit);
 ---
 
 <div
@@ -38,6 +51,7 @@ const initialJSON = JSON.stringify(initialSplits);
   data-current-user={currentUserId ?? ""}
   data-members={membersJSON}
   data-initial={initialJSON}
+  data-default={defaultJSON}
 >
   <input type="hidden" name="splits_json" value="" />
 

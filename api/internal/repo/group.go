@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -16,6 +17,26 @@ type Group struct {
 	DefaultCurrency string
 	CreatedBy       uuid.UUID
 	CreatedAt       time.Time
+	// DefaultSplit pins a 2-member percentage split that prefills the create-expense
+	// form. nil = no default. Auto-cleared when the group grows past 2 members.
+	DefaultSplit []DefaultSplitEntry
+}
+
+type DefaultSplitEntry struct {
+	UserID      uuid.UUID `json:"user_id"`
+	BasisPoints int64     `json:"basis_points"`
+}
+
+// scanDefaultSplit unmarshals the JSONB column. NULL → nil.
+func scanDefaultSplit(raw []byte) ([]DefaultSplitEntry, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var out []DefaultSplitEntry
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 type GroupMember struct {
@@ -62,13 +83,17 @@ func (r *GroupRepo) Create(ctx context.Context, name, defaultCurrency string, cr
 
 func (r *GroupRepo) FindByID(ctx context.Context, id uuid.UUID) (*Group, error) {
 	var g Group
+	var rawSplit []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, name, default_currency, created_by, created_at FROM groups WHERE id = $1
-	`, id).Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt)
+		SELECT id, name, default_currency, created_by, created_at, default_split FROM groups WHERE id = $1
+	`, id).Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt, &rawSplit)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
+		return nil, err
+	}
+	if g.DefaultSplit, err = scanDefaultSplit(rawSplit); err != nil {
 		return nil, err
 	}
 	return &g, nil
@@ -77,7 +102,7 @@ func (r *GroupRepo) FindByID(ctx context.Context, id uuid.UUID) (*Group, error) 
 // ListForUser returns groups the user belongs to, newest first.
 func (r *GroupRepo) ListForUser(ctx context.Context, userID uuid.UUID) ([]Group, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT g.id, g.name, g.default_currency, g.created_by, g.created_at
+		SELECT g.id, g.name, g.default_currency, g.created_by, g.created_at, g.default_split
 		FROM groups g
 		JOIN group_members m ON m.group_id = g.id
 		WHERE m.user_id = $1
@@ -90,7 +115,11 @@ func (r *GroupRepo) ListForUser(ctx context.Context, userID uuid.UUID) ([]Group,
 	var out []Group
 	for rows.Next() {
 		var g Group
-		if err := rows.Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt); err != nil {
+		var rawSplit []byte
+		if err := rows.Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt, &rawSplit); err != nil {
+			return nil, err
+		}
+		if g.DefaultSplit, err = scanDefaultSplit(rawSplit); err != nil {
 			return nil, err
 		}
 		out = append(out, g)
@@ -98,27 +127,65 @@ func (r *GroupRepo) ListForUser(ctx context.Context, userID uuid.UUID) ([]Group,
 	return out, rows.Err()
 }
 
-// Update applies a partial update to the group. nil pointers mean "leave unchanged".
-func (r *GroupRepo) Update(ctx context.Context, id uuid.UUID, name, defaultCurrency *string) (*Group, error) {
-	if name == nil && defaultCurrency == nil {
+// UpdateInput captures partial-update fields for a group.
+// nil pointer = leave unchanged. For DefaultSplit: nil = unchanged, non-nil
+// pointer to nil slice = clear it, non-nil pointer to slice = replace it.
+type UpdateInput struct {
+	Name            *string
+	DefaultCurrency *string
+	DefaultSplit    *[]DefaultSplitEntry
+}
+
+func (r *GroupRepo) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (*Group, error) {
+	if in.Name == nil && in.DefaultCurrency == nil && in.DefaultSplit == nil {
 		return r.FindByID(ctx, id)
 	}
+
+	// Pre-marshal the JSONB payload so we can pass nil for "leave alone" or
+	// a json.RawMessage for "set value". A separate flag column tells SQL
+	// whether to overwrite or COALESCE.
+	var splitJSON any
+	splitProvided := in.DefaultSplit != nil
+	if splitProvided {
+		if *in.DefaultSplit == nil || len(*in.DefaultSplit) == 0 {
+			splitJSON = nil // SQL NULL → clears the column
+		} else {
+			b, err := json.Marshal(*in.DefaultSplit)
+			if err != nil {
+				return nil, err
+			}
+			splitJSON = b
+		}
+	}
+
 	var g Group
+	var rawSplit []byte
 	err := r.pool.QueryRow(ctx, `
 		UPDATE groups SET
 			name             = COALESCE($2, name),
-			default_currency = COALESCE($3, default_currency)
+			default_currency = COALESCE($3, default_currency),
+			default_split    = CASE WHEN $4 THEN $5::jsonb ELSE default_split END
 		WHERE id = $1
-		RETURNING id, name, default_currency, created_by, created_at
-	`, id, name, defaultCurrency).
-		Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt)
+		RETURNING id, name, default_currency, created_by, created_at, default_split
+	`, id, in.Name, in.DefaultCurrency, splitProvided, splitJSON).
+		Scan(&g.ID, &g.Name, &g.DefaultCurrency, &g.CreatedBy, &g.CreatedAt, &rawSplit)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
+	if g.DefaultSplit, err = scanDefaultSplit(rawSplit); err != nil {
+		return nil, err
+	}
 	return &g, nil
+}
+
+// ClearDefaultSplit unconditionally nulls out the default_split column. Used
+// by the service when a 3rd member joins a group with a pinned default.
+func (r *GroupRepo) ClearDefaultSplit(ctx context.Context, id uuid.UUID) error {
+	_, err := r.pool.Exec(ctx, `UPDATE groups SET default_split = NULL WHERE id = $1`, id)
+	return err
 }
 
 // Delete removes the group. Cascades to members, expenses, splits, settlements, recurring.

@@ -64,7 +64,18 @@ func (s *Server) UpdateGroup(c *gin.Context) {
 	if !bindStrictJSON(c, &req) {
 		return
 	}
-	g, members, err := s.Groups.Update(c.Request.Context(), groupID, u.ID, req.Name, req.DefaultCurrency)
+	in := service.UpdateGroupInput{
+		Name:            req.Name,
+		DefaultCurrency: req.DefaultCurrency,
+	}
+	if req.DefaultSplit != nil {
+		entries := make([]repo.DefaultSplitEntry, len(*req.DefaultSplit))
+		for i, e := range *req.DefaultSplit {
+			entries[i] = repo.DefaultSplitEntry{UserID: e.UserId, BasisPoints: int64(e.BasisPoints)}
+		}
+		in.DefaultSplit = &entries
+	}
+	g, members, err := s.Groups.Update(c.Request.Context(), groupID, u.ID, in)
 	switch {
 	case errors.Is(err, service.ErrNotMember):
 		writeErr(c, http.StatusForbidden, "forbidden", "not a group member")
@@ -72,7 +83,7 @@ func (s *Server) UpdateGroup(c *gin.Context) {
 	case errors.Is(err, repo.ErrNotFound):
 		writeErr(c, http.StatusNotFound, "not_found", "group not found")
 		return
-	case errors.Is(err, service.ErrBadCurrency):
+	case errors.Is(err, service.ErrBadCurrency), errors.Is(err, service.ErrBadDefaultSplit):
 		writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	case err != nil:
@@ -133,7 +144,7 @@ func toAPIGroup(g *repo.Group, members []repo.GroupMember) apigen.Group {
 	for i := range members {
 		ms = append(ms, toAPIMember(&members[i]))
 	}
-	return apigen.Group{
+	out := apigen.Group{
 		Id:              g.ID,
 		Name:            g.Name,
 		DefaultCurrency: g.DefaultCurrency,
@@ -141,6 +152,14 @@ func toAPIGroup(g *repo.Group, members []repo.GroupMember) apigen.Group {
 		CreatedAt:       g.CreatedAt,
 		Members:         ms,
 	}
+	if len(g.DefaultSplit) > 0 {
+		entries := make([]apigen.DefaultSplitEntry, len(g.DefaultSplit))
+		for i, e := range g.DefaultSplit {
+			entries[i] = apigen.DefaultSplitEntry{UserId: e.UserID, BasisPoints: int(e.BasisPoints)}
+		}
+		out.DefaultSplit = &entries
+	}
+	return out
 }
 
 func toAPIMember(m *repo.GroupMember) apigen.GroupMember {

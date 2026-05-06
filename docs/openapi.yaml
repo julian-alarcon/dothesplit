@@ -715,6 +715,26 @@ components:
         members:
           type: array
           items: { $ref: "#/components/schemas/GroupMember" }
+        default_split:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: |
+            Optional 2-member percentage split that prefills the create-expense form.
+            Automatically cleared by the server when the group grows past 2 members.
+          items: { $ref: "#/components/schemas/DefaultSplitEntry" }
+
+    DefaultSplitEntry:
+      type: object
+      required: [user_id, basis_points]
+      additionalProperties: false
+      properties:
+        user_id: { type: string, format: uuid }
+        basis_points:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: 0..10000; the two entries must sum to exactly 10000.
 
     GroupMember:
       type: object
@@ -755,6 +775,14 @@ components:
           type: string
           minLength: 3
           maxLength: 3
+        default_split:
+          type: array
+          maxItems: 2
+          nullable: true
+          description: |
+            Set the default 2-member split. Pass an empty array (or null) to clear it.
+            Only valid when the group has exactly 2 members.
+          items: { $ref: "#/components/schemas/DefaultSplitEntry" }
 
     AddMemberRequest:
       type: object
