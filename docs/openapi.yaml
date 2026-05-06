@@ -190,7 +190,7 @@ paths:
 
   /v1/me/avatar:
     put:
-      summary: Upload a 6x6 avatar PNG (base64-encoded, <= 1024 bytes)
+      summary: Upload an 8x8 avatar PNG (base64-encoded, <= 1024 bytes)
       operationId: setAvatar
       tags: [auth]
       requestBody:
@@ -216,7 +216,7 @@ paths:
     get:
       summary: Serve a user's pixelated avatar PNG (group-member access)
       description: |
-        Returns the stored avatar PNG for the user. The source is a 6x6 bitmap
+        Returns the stored avatar PNG for the user. The source is an 8x8 bitmap
         uploaded by the client; the server upscales it with nearest-neighbour
         sampling before storage so it renders crisp at any CSS size. Callers
         must share at least one group with the target user. Browsers should
@@ -676,7 +676,7 @@ components:
           type: string
           minLength: 1
           maxLength: 1500
-          description: Base64-encoded PNG. Decoded size must be <= 1024 bytes and the image exactly 6x6 pixels.
+          description: Base64-encoded PNG. Decoded size must be <= 1024 bytes and the image exactly 8x8 pixels.
 
     RegisterRequest:
       type: object

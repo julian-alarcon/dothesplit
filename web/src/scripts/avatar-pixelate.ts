@@ -1,17 +1,17 @@
 /*
- * Client-side 6x6 avatar pipeline.
+ * Client-side 8x8 avatar pipeline.
  *
  * Reads any image from a <input type="file"> on a form tagged
- * `data-avatar-form`, renders it into a 6x6 pixelated + saturated canvas
+ * `data-avatar-form`, renders it into an 8x8 pixelated + saturated canvas
  * shown in-page, and on submit puts the base64 PNG into a hidden input named
  * `png_base64` so the existing form POST works unchanged.
  *
  * Every bit of heavy lifting stays on the client — the server never sees the
- * original image. GDPR-friendly: you can't identify a human in 36 pixels.
+ * original image. GDPR-friendly: you can't identify a human in 64 pixels.
  */
 
 /** Source grid side length. Must stay in sync with AvatarClientSize on the server. */
-const SOURCE = 6;
+const SOURCE = 8;
 
 type RGB = [number, number, number];
 
@@ -57,7 +57,7 @@ function hslToRgb(h: number, s: number, l: number): RGB {
 }
 
 /**
- * Returns a square source rect (centered crop) so the 6x6 output isn't
+ * Returns a square source rect (centered crop) so the 8x8 output isn't
  * squished when the input is 16:9 or portrait.
  */
 function centerSquare(w: number, h: number): { sx: number; sy: number; s: number } {
@@ -67,12 +67,12 @@ function centerSquare(w: number, h: number): { sx: number; sy: number; s: number
 
 /**
  * Produces two PNG data URLs from the source image:
- *   - `uploadDataUrl`: the 6x6 bitmap the server expects and validates.
+ *   - `uploadDataUrl`: the 8x8 bitmap the server expects and validates.
  *   - `previewDataUrl`: a nearest-neighbour upscale so the <img> shows crisp
  *     blocks without relying on `image-rendering: pixelated` (which has
  *     inconsistent browser support).
  */
-const PREVIEW_SCALE = 11; // 6 * 11 = 66 preview pixels, still fits the 64px slot
+const PREVIEW_SCALE = 8; // 8 * 8 = 64 preview pixels, fits the 64px slot exactly
 const PREVIEW_SIZE = SOURCE * PREVIEW_SCALE;
 
 async function pixelateFile(

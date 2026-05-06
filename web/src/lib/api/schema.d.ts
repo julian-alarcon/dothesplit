@@ -133,7 +133,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Upload a 6x6 avatar PNG (base64-encoded, <= 1024 bytes) */
+        /** Upload an 8x8 avatar PNG (base64-encoded, <= 1024 bytes) */
         put: operations["setAvatar"];
         post?: never;
         /** Remove the current user's avatar (falls back to initials on display) */
@@ -152,7 +152,7 @@ export interface paths {
         };
         /**
          * Serve a user's pixelated avatar PNG (group-member access)
-         * @description Returns the stored avatar PNG for the user. The source is a 6x6 bitmap
+         * @description Returns the stored avatar PNG for the user. The source is an 8x8 bitmap
          *     uploaded by the client; the server upscales it with nearest-neighbour
          *     sampling before storage so it renders crisp at any CSS size. Callers
          *     must share at least one group with the target user. Browsers should
@@ -405,7 +405,7 @@ export interface components {
             new_password: string;
         };
         SetAvatarRequest: {
-            /** @description Base64-encoded PNG. Decoded size must be <= 1024 bytes and the image exactly 6x6 pixels. */
+            /** @description Base64-encoded PNG. Decoded size must be <= 1024 bytes and the image exactly 8x8 pixels. */
             png_base64: string;
         };
         /**

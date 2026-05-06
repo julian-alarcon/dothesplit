@@ -40,7 +40,7 @@ make test           # unit + integration tests
 
 Currently shipped and usable:
 
-- **Accounts**: register, log in, log out, change display name, change password (old password required), upload an **6×6 pixel avatar** (generated in-browser from any image; falls back to initials), soft-delete your account with a stable tombstone so shared history stays traceable.
+- **Accounts**: register, log in, log out, change display name, change password (old password required), upload an **8×8 pixel avatar** (generated in-browser from any image; falls back to initials), soft-delete your account with a stable tombstone so shared history stays traceable.
 - **Groups**: create, rename, set a per-group default currency (defaults to EUR), invite existing members by email, delete (creator only; cascades). Settings live on a dedicated `/groups/{id}/settings` page. For 2-member groups, pin a **default percentage split** (e.g. 60/40) that prefills new expenses; auto-cleared when a 3rd member joins.
 - **Expenses**: create with three split modes via a shared in-app editor — **equal**, **exact** (per-member cents), and **percent** — with live remainder validation and a 2-member "you owe X" framing. Categorize with one of ten seeded categories. Any group member can edit description / amount / category / payer / splits after the fact; splits either rescale proportionally on amount-only edits or are re-resolved when a new mode/split is supplied. Soft-delete (payer or group creator). Inspect the full edit history with who / when / field / old → new, including per-member split diffs.
 - **Balances & settle-up**: net-balance computation over all expenses + settlements, plus a simplified "X owes Y" view. Record settlements directly.

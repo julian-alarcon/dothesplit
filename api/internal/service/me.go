@@ -27,16 +27,16 @@ import (
 //   - Storage ceiling is generous: a 256x256 low-color PNG comfortably fits in
 //     a few kilobytes.
 const (
-	AvatarClientSize    = 6                                      // what the browser must upload (36 pixels total)
-	AvatarUpscaleFactor = 42                                     // each source pixel becomes a 42x42 block
-	AvatarRenderSize    = AvatarClientSize * AvatarUpscaleFactor // 252
+	AvatarClientSize    = 8                                      // what the browser must upload (64 pixels total)
+	AvatarUpscaleFactor = 32                                     // each source pixel becomes a 32x32 block
+	AvatarRenderSize    = AvatarClientSize * AvatarUpscaleFactor // 256
 	AvatarClientMaxB    = 1024
 	AvatarStorageMaxB   = 16 * 1024
 )
 
 var (
 	ErrWrongPassword = errors.New("old password does not match")
-	ErrBadAvatar     = errors.New("avatar must be a 6x6 PNG under 1024 bytes")
+	ErrBadAvatar     = errors.New("avatar must be an 8x8 PNG under 1024 bytes")
 	ErrUserDeleted   = errors.New("account is already deleted")
 )
 
@@ -103,8 +103,8 @@ func (s *MeService) ChangePassword(ctx context.Context, userID uuid.UUID, oldPas
 // inconsistent support (notably on iOS Safari / some Android WebViews). A
 // pre-scaled 256x256 PNG renders blocky everywhere with no CSS tricks.
 //
-// This doesn't leak more information than the 8x8 source — it's the same 64
-// color samples, just represented with more pixels.
+// This doesn't leak more information than the 8x8 source — it's the same
+// 64 color samples, just represented with more pixels.
 //
 // We also re-encode from a fresh RGBA canvas to strip ancillary PNG chunks
 // (tEXt, iTXt, color profiles, EXIF) the client may have attached.
