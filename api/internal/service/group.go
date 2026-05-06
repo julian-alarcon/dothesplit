@@ -12,24 +12,27 @@ import (
 )
 
 var (
-	ErrNotMember       = errors.New("user is not a group member")
-	ErrInviteeNotFound = errors.New("invitee is not registered")
-	ErrNotCreator      = errors.New("only the group creator can perform this action")
-	ErrBadCurrency     = errors.New("default_currency must be a 3-letter code")
-	ErrBadDefaultSplit = errors.New("invalid default_split")
+	ErrNotMember           = errors.New("user is not a group member")
+	ErrInviteeNotFound     = errors.New("invitee is not registered")
+	ErrNotCreator          = errors.New("only the group creator can perform this action")
+	ErrBadCurrency         = errors.New("default_currency must be a 3-letter code")
+	ErrBadDefaultSplit     = errors.New("invalid default_split")
+	ErrCannotRemoveCreator = errors.New("the group creator cannot leave or be removed; transfer ownership or delete the group")
+	ErrBalanceNotZero      = errors.New("settle up first: removing a member with a non-zero balance would silently drop their share of the ledger")
 )
 
 // DefaultGroupCurrency is used when a group is created without an explicit currency.
 const DefaultGroupCurrency = "EUR"
 
 type GroupService struct {
-	groups *repo.GroupRepo
-	users  *repo.UserRepo
-	email  *crypto.EmailCipher
+	groups   *repo.GroupRepo
+	users    *repo.UserRepo
+	balances *repo.BalanceRepo
+	email    *crypto.EmailCipher
 }
 
-func NewGroupService(g *repo.GroupRepo, u *repo.UserRepo, e *crypto.EmailCipher) *GroupService {
-	return &GroupService{groups: g, users: u, email: e}
+func NewGroupService(g *repo.GroupRepo, u *repo.UserRepo, b *repo.BalanceRepo, e *crypto.EmailCipher) *GroupService {
+	return &GroupService{groups: g, users: u, balances: b, email: e}
 }
 
 // Create a group. The creator is auto-added as a member. Empty currency → DefaultGroupCurrency.
@@ -235,6 +238,65 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, actorID uuid.UUID
 		}
 	}
 	return m, nil
+}
+
+// RemoveMember removes targetID from groupID. Authz: actor must be the group
+// creator (to remove anyone else) OR the actor must equal targetID (leaving).
+// The creator can't leave or be removed — transfer ownership or delete the
+// group instead.
+//
+// Balance gate: a creator removing somebody *else* is blocked when the target
+// has a non-zero balance, since silently writing off a third party's debt is
+// a high-blast-radius action they didn't consent to. A member leaving on their
+// own accord is allowed regardless — the UI surfaces a warning so they
+// understand the consequence. Their splits and settlements stay in the
+// ledger; they just stop showing up in the balance JOIN.
+//
+// If membership ends up below 2, any pinned default_split is cleared.
+func (s *GroupService) RemoveMember(ctx context.Context, groupID, actorID, targetID uuid.UUID) error {
+	g, err := s.groups.FindByID(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if err := s.RequireMember(ctx, groupID, actorID); err != nil {
+		return err
+	}
+	ok, err := s.groups.IsMember(ctx, groupID, targetID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return repo.ErrNotFound
+	}
+	// Authz: creator can remove anyone; non-creator can only remove themselves.
+	if actorID != g.CreatedBy && actorID != targetID {
+		return ErrNotCreator
+	}
+	if targetID == g.CreatedBy {
+		return ErrCannotRemoveCreator
+	}
+	if actorID != targetID {
+		net, err := s.balances.NetForUser(ctx, groupID, targetID)
+		if err != nil {
+			return err
+		}
+		if net != 0 {
+			return ErrBalanceNotZero
+		}
+	}
+	if err := s.groups.RemoveMember(ctx, groupID, targetID); err != nil {
+		return err
+	}
+	members, err := s.groups.ListMembers(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if len(members) < 2 {
+		if err := s.groups.ClearDefaultSplit(ctx, groupID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Get returns a group + its members, enforcing membership.

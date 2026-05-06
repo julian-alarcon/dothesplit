@@ -329,6 +329,33 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /v1/groups/{id}/members/{userId}:
+    delete:
+      summary: Remove a member (creator removes anyone; members may leave themselves)
+      description: |
+        The group creator can remove any non-creator member. Any member may
+        remove themselves (leave). The creator cannot leave or be removed —
+        ownership transfer or full group deletion is required first.
+        The target's net balance for the group must be exactly zero (settle up
+        first), so removing them never silently writes off debt. If the group
+        ends up with fewer than 2 members, any pinned `default_split` is
+        cleared automatically.
+      operationId: removeGroupMember
+      tags: [groups]
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Member removed
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /v1/groups/{id}/expenses:
     get:
       summary: List group expenses (newest first)

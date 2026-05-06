@@ -57,7 +57,7 @@ func main() {
 		time.Duration(cfg.SessionTTLDay)*24*time.Hour)
 	meSvc := service.NewMeService(users, sessions, email, cfg.PasswordPepper)
 	categorySvc := service.NewCategoryService(categories)
-	groupSvc := service.NewGroupService(groups, users, email)
+	groupSvc := service.NewGroupService(groups, users, balances, email)
 	expenseSvc := service.NewExpenseService(expenses, groups, categorySvc)
 	balanceSvc := service.NewBalanceService(balances, groups)
 	settlementSvc := service.NewSettlementService(settlements, groups)

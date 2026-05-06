@@ -109,7 +109,7 @@ func setup(t *testing.T) *testStack {
 		Pool:        pool,
 		Auth:        service.NewAuthService(users, sessionRepo, email, cfg.PasswordPepper, ttl),
 		MeSvc:       service.NewMeService(users, sessionRepo, email, cfg.PasswordPepper),
-		Groups:      service.NewGroupService(groups, users, email),
+		Groups:      service.NewGroupService(groups, users, balances, email),
 		Categories:  categorySvc,
 		Expenses:    service.NewExpenseService(expenses, groups, categorySvc),
 		Balances:    service.NewBalanceService(balances, groups),
@@ -550,6 +550,80 @@ func TestGoldenPath(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 	// Second delete → 404
 	resp, _ = request(t, "DELETE", base+"/v1/expenses/"+hotelID, nil, cookieA)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	// --- Remove members / leave group ---
+	// Fresh group: A is creator, B and Carol are members.
+	resp, removeGroupBody := request(t, "POST", base+"/v1/groups",
+		map[string]any{"name": "RemoveTest"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, removeGroupBody)
+	rgID := removeGroupBody["id"].(string)
+	resp, _ = request(t, "POST", base+"/v1/groups/"+rgID+"/members",
+		map[string]any{"email": "b@test.dev"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp, _ = request(t, "POST", base+"/v1/groups/"+rgID+"/members",
+		map[string]any{"email": "c@test.dev"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Creator cannot leave or be removed.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userA["id"].(string), nil, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Non-creator cannot remove someone else.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userB["id"].(string), nil, cookieC)
+	require.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+	// Carol leaves herself (zero balance) → 204; group drops to 2 members.
+	resp, carolMe := request(t, "GET", base+"/v1/me", nil, cookieC)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	carolID := carolMe["id"].(string)
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+carolID, nil, cookieC)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	// Carol can no longer access the group.
+	resp, _ = request(t, "GET", base+"/v1/groups/"+rgID+"/balances", nil, cookieC)
+	require.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+	// Add an expense so B has a non-zero balance.
+	resp, _ = request(t, "POST", base+"/v1/groups/"+rgID+"/expenses", map[string]any{
+		"description":  "Snack",
+		"amount_cents": 1000,
+		"payer_id":     userA["id"],
+		"mode":         "equal",
+		"splits": []map[string]any{
+			{"user_id": userA["id"]}, {"user_id": userB["id"]},
+		},
+	}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Creator cannot remove B while B has a non-zero balance — silently
+	// writing off another member's debt is too high a blast radius.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userB["id"].(string), nil, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// But B *can* leave themselves even with a non-zero balance — UI surfaces
+	// a warning, the user owns the consequence.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userB["id"].(string), nil, cookieB)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	// Re-add B and settle up so the rest of the lifecycle still has a target.
+	resp, _ = request(t, "POST", base+"/v1/groups/"+rgID+"/members",
+		map[string]any{"email": "b@test.dev"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// B settles their share → balance back to zero.
+	resp, _ = request(t, "POST", base+"/v1/groups/"+rgID+"/settlements", map[string]any{
+		"to_user_id":   userA["id"],
+		"amount_cents": 500,
+	}, cookieB)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Now creator can remove B.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userB["id"].(string), nil, cookieA)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	// Removing a non-member → 404.
+	resp, _ = request(t, "DELETE", base+"/v1/groups/"+rgID+"/members/"+userB["id"].(string), nil, cookieA)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 
 	// Logout, then cookie is unauthenticated

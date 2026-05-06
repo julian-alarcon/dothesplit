@@ -53,6 +53,7 @@ func New(s *handlers.Server) http.Handler {
 	auth.PATCH("/groups/:id", s.UpdateGroup)
 	auth.DELETE("/groups/:id", s.DeleteGroup)
 	auth.POST("/groups/:id/members", s.AddGroupMember)
+	auth.DELETE("/groups/:id/members/:userId", s.RemoveGroupMember)
 
 	auth.GET("/groups/:id/expenses", s.ListExpenses)
 	auth.POST("/groups/:id/expenses", s.CreateExpense)

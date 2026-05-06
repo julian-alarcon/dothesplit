@@ -139,6 +139,43 @@ func (s *Server) AddGroupMember(c *gin.Context) {
 	c.JSON(http.StatusCreated, toAPIMember(m))
 }
 
+// RemoveGroupMember removes a member from a group. The creator can remove
+// any non-creator member; any member can remove themselves (leave). Requires
+// the target's net balance to be zero.
+func (s *Server) RemoveGroupMember(c *gin.Context) {
+	u := middleware.User(c)
+	groupID, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+	targetID, ok := parseUUID(c, "userId")
+	if !ok {
+		return
+	}
+	err := s.Groups.RemoveMember(c.Request.Context(), groupID, u.ID, targetID)
+	switch {
+	case errors.Is(err, repo.ErrNotFound):
+		writeErr(c, http.StatusNotFound, "not_found", "member not found")
+		return
+	case errors.Is(err, service.ErrNotMember):
+		writeErr(c, http.StatusForbidden, "forbidden", "not a group member")
+		return
+	case errors.Is(err, service.ErrNotCreator):
+		writeErr(c, http.StatusForbidden, "forbidden", "only the group creator can remove other members")
+		return
+	case errors.Is(err, service.ErrCannotRemoveCreator):
+		writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	case errors.Is(err, service.ErrBalanceNotZero):
+		writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	case err != nil:
+		writeErr(c, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func toAPIGroup(g *repo.Group, members []repo.GroupMember) apigen.Group {
 	ms := make([]apigen.GroupMember, 0, len(members))
 	for i := range members {

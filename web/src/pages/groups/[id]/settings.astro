@@ -1,0 +1,272 @@
+---
+import Base from "@/layouts/Base.astro";
+import Avatar from "@/components/Avatar.astro";
+import { apiFor } from "@/lib/api/client";
+
+const { id } = Astro.params as { id: string };
+const api = apiFor(Astro.locals.cookie);
+
+const [groupsRes, balancesRes] = await Promise.all([
+  api.GET("/v1/groups"),
+  api.GET("/v1/groups/{id}/balances", { params: { path: { id } } }),
+]);
+const group = groupsRes.data?.find((g) => g.id === id);
+if (!group) {
+  return Astro.redirect("/groups");
+}
+
+const currency = group.default_currency;
+const isCreator = group.created_by === Astro.locals.user?.id;
+
+const myID = Astro.locals.user?.id ?? "";
+const myNetCents =
+  balancesRes.data?.net?.find((b) => b.user_id === myID)?.net_cents ?? 0;
+const myMoneyFmt = new Intl.NumberFormat(undefined, {
+  style: "currency",
+  currency,
+  currencyDisplay: "narrowSymbol",
+});
+
+const isPair = group.members.length === 2;
+const pairMembers = isPair ? group.members : [];
+const defaultSplit = group.default_split ?? [];
+const hasDefaultSplit = defaultSplit.length === 2;
+const dsBPByUser = new Map<string, number>();
+for (const e of defaultSplit) dsBPByUser.set(e.user_id, e.basis_points);
+const pairPrefill = pairMembers.map((m) => ({
+  member: m,
+  percent: ((dsBPByUser.get(m.user_id) ?? 5000) / 100).toString(),
+}));
+
+const showSettingsError = Astro.url.searchParams.get("error") === "1";
+const errorReason = Astro.url.searchParams.get("reason") ?? "";
+const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK", "NOK", "DKK"];
+---
+
+<Base title={`${group.name} – settings`}>
+  <div class="mb-4 flex items-center gap-2 text-sm">
+    <a href={`/groups/${id}`} class="text-neutral-600 hover:underline dark:text-neutral-400">← Back to {group.name}</a>
+  </div>
+
+  <h1 class="mb-2 text-2xl font-semibold">Group settings</h1>
+  <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+    {group.members.length} member{group.members.length === 1 ? "" : "s"} · default currency {currency}
+  </p>
+
+  {showSettingsError && (
+    <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      {errorReason ? errorReason : "Could not update the group. Check your input and try again."}
+    </p>
+  )}
+
+  <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <h2 class="mb-3 font-medium">Rename &amp; currency</h2>
+    <form method="POST" action={`/api/group-settings?id=${id}`} class="flex flex-col gap-2">
+      <label class="flex flex-col gap-1 text-sm">
+        <span>Name</span>
+        <input
+          name="name"
+          required
+          minlength="1"
+          maxlength="80"
+          value={group.name}
+          class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span>Default currency</span>
+        <select
+          name="default_currency"
+          class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          {currencyChoices.map((c) => (
+            <option value={c} selected={c === currency}>{c}</option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="mt-1 self-start rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+      >
+        Save
+      </button>
+    </form>
+  </section>
+
+  <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <h2 class="mb-3 font-medium">Members</h2>
+    <ul class="mb-3 flex flex-col gap-1 text-sm">
+      {group.members.map((m) => {
+        const isThisCreator = m.user_id === group.created_by;
+        const canRemove = isCreator && !isThisCreator;
+        return (
+          <li class="flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2">
+              <Avatar
+                userId={m.user_id}
+                displayName={m.display_name}
+                hasAvatar={m.has_avatar}
+                avatarUpdatedAt={m.avatar_updated_at}
+                size={20}
+              />
+              <span>{m.display_name}</span>
+            </span>
+            <span class="flex items-center gap-2">
+              {isThisCreator && (
+                <span class="text-xs uppercase tracking-wide text-neutral-500">creator</span>
+              )}
+              {canRemove && (
+                <form method="POST" action={`/api/group-member-remove?id=${id}`}>
+                  <input type="hidden" name="user_id" value={m.user_id} />
+                  <button
+                    type="submit"
+                    class="rounded-md border border-red-300 bg-white px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-neutral-900 dark:text-red-300 dark:hover:bg-red-950"
+                  >
+                    Remove
+                  </button>
+                </form>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+    {isPair && hasDefaultSplit && (
+      <p class="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        Adding a 3rd member will clear the pinned default split. New expenses will fall back to an equal split until you set a new default.
+      </p>
+    )}
+    <form
+      method="POST"
+      action={`/api/group-members?id=${id}`}
+      class="flex gap-2"
+    >
+      <input
+        type="email"
+        name="email"
+        placeholder="new.member@example.com"
+        required
+        class="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+      />
+      <button type="submit" class="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900">
+        Add
+      </button>
+    </form>
+    <p class="mt-1 text-xs text-neutral-500">The invitee must already be registered.</p>
+  </section>
+
+  <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <h2 class="mb-3 font-medium">Default split</h2>
+    <p class="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
+      {!isPair
+        ? "Only available for 2-member groups. New expenses default to an equal split."
+        : hasDefaultSplit
+          ? "New expenses prefill with this percentage split. The split editor still lets you change it per-expense."
+          : "Pin a percentage split (e.g. 60/40) to prefill new expenses. Cleared automatically if a 3rd member joins."}
+    </p>
+    <fieldset disabled={!isPair} class="contents">
+      <form
+        method="POST"
+        action={`/api/group-default-split?id=${id}`}
+        class="flex flex-col gap-2"
+      >
+        <input type="hidden" name="action" value="set" />
+        {(isPair ? pairPrefill : group.members.slice(0, 2).map((m) => ({ member: m, percent: "50" }))).map((p, i) => (
+          <div class="flex items-center gap-2 text-sm">
+            <span class="flex-1">{p.member.display_name}</span>
+            <input type="hidden" name={`member_id_${i + 1}`} value={p.member.user_id} />
+            <input
+              type="number"
+              name={`percent_${i + 1}`}
+              step="0.01"
+              min="0"
+              max="100"
+              required
+              value={p.percent}
+              disabled={!isPair}
+              class="w-20 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm tabular-nums disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+            <span class="text-neutral-500">%</span>
+          </div>
+        ))}
+        <p class="text-xs text-neutral-500">Must sum to 100.</p>
+        <div class="flex gap-2">
+          <button
+            type="submit"
+            disabled={!isPair}
+            class="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            {hasDefaultSplit ? "Update default" : "Pin default"}
+          </button>
+        </div>
+      </form>
+      {hasDefaultSplit && isPair && (
+        <form
+          method="POST"
+          action={`/api/group-default-split?id=${id}`}
+          class="mt-2"
+        >
+          <input type="hidden" name="action" value="clear" />
+          <button
+            type="submit"
+            class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+          >
+            Clear default
+          </button>
+        </form>
+      )}
+    </fieldset>
+  </section>
+
+  {!isCreator && (
+    <section class="mb-8 rounded-md border border-red-200 bg-white p-4 dark:border-red-900 dark:bg-neutral-900">
+      <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Leave group</h2>
+      <p class="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
+        Removes you from this group. Your past expenses, splits, and settlements stay in the ledger.
+      </p>
+      {myNetCents !== 0 && (
+        <p class="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          You have a non-zero balance of <span class="font-mono">{myMoneyFmt.format(myNetCents / 100)}</span> in this group. Leaving without settling up means
+          {myNetCents > 0
+            ? " others won't be reminded to pay you back."
+            : " you won't be reminded to pay your share."}
+          Consider settling up first.
+        </p>
+      )}
+      <form
+        method="POST"
+        action={`/api/group-member-remove?id=${id}`}
+      >
+        <input type="hidden" name="user_id" value={myID} />
+        <input type="hidden" name="leave" value="1" />
+        <button
+          type="submit"
+          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          Leave group
+        </button>
+      </form>
+    </section>
+  )}
+
+  {isCreator && (
+    <section class="rounded-md border border-red-200 bg-white p-4 dark:border-red-900 dark:bg-neutral-900">
+      <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Danger zone</h2>
+      <p class="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
+        Deleting the group removes all its expenses, settlements and recurring templates. This cannot be undone.
+      </p>
+      <form
+        method="POST"
+        action={`/api/group-delete?id=${id}`}
+        onsubmit="return confirm('Delete this group and all its data? This cannot be undone.');"
+      >
+        <button
+          type="submit"
+          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          Delete group
+        </button>
+      </form>
+    </section>
+  )}
+</Base>

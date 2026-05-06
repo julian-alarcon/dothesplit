@@ -221,6 +221,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/groups/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a member (creator removes anyone; members may leave themselves)
+         * @description The group creator can remove any non-creator member. Any member may
+         *     remove themselves (leave). The creator cannot leave or be removed —
+         *     ownership transfer or full group deletion is required first.
+         *     The target's net balance for the group must be exactly zero (settle up
+         *     first), so removing them never silently writes off debt. If the group
+         *     ends up with fewer than 2 members, any pinned `default_split` is
+         *     cleared automatically.
+         */
+        delete: operations["removeGroupMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/groups/{id}/expenses": {
         parameters: {
             query?: never;
@@ -1164,6 +1190,31 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GroupMember"];
                 };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeGroupMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["GroupId"];
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Member removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
