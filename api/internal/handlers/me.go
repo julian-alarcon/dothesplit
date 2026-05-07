@@ -11,7 +11,8 @@ import (
 	"github.com/julian-alarcon/dothesplit/api/internal/service"
 )
 
-// UpdateMe renames the current user.
+// UpdateMe applies a partial update to the current user. Currently supports
+// display_name and week_start; either or both may be supplied.
 func (s *Server) UpdateMe(c *gin.Context) {
 	u := middleware.User(c)
 	if u == nil {
@@ -22,14 +23,31 @@ func (s *Server) UpdateMe(c *gin.Context) {
 	if !bindStrictJSON(c, &req) {
 		return
 	}
-	if err := s.MeSvc.Rename(c.Request.Context(), u.ID, req.DisplayName); err != nil {
-		switch {
-		case errors.Is(err, repo.ErrNotFound):
-			writeErr(c, http.StatusNotFound, "not_found", "user not found")
-		default:
-			writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
-		}
+	if req.DisplayName == nil && req.WeekStart == nil {
+		writeErr(c, http.StatusBadRequest, "bad_request", "nothing to update")
 		return
+	}
+	if req.DisplayName != nil {
+		if err := s.MeSvc.Rename(c.Request.Context(), u.ID, *req.DisplayName); err != nil {
+			switch {
+			case errors.Is(err, repo.ErrNotFound):
+				writeErr(c, http.StatusNotFound, "not_found", "user not found")
+			default:
+				writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
+			}
+			return
+		}
+	}
+	if req.WeekStart != nil {
+		if err := s.MeSvc.SetWeekStart(c.Request.Context(), u.ID, int16(*req.WeekStart)); err != nil {
+			switch {
+			case errors.Is(err, repo.ErrNotFound):
+				writeErr(c, http.StatusNotFound, "not_found", "user not found")
+			default:
+				writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
+			}
+			return
+		}
 	}
 	// Reload through AuthService so the response reflects any newly-set fields.
 	fresh, err := s.Auth.Resolve(c.Request.Context(), currentSessionToken(c, s))

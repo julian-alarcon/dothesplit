@@ -70,6 +70,7 @@ func toAPIUser(u *service.User) apigen.User {
 		HasAvatar:       u.HasAvatar,
 		AvatarUpdatedAt: u.AvatarUpdatedAt,
 		DeletedAt:       u.DeletedAt,
+		WeekStart:       apigen.UserWeekStart(u.WeekStart),
 	}
 	return out
 }

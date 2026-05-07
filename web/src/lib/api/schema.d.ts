@@ -422,9 +422,19 @@ export interface components {
              * @description Set when the account has been soft-deleted; `display_name` is then a tombstone.
              */
             deleted_at?: string;
+            /**
+             * @description First day of the week in calendar UIs. 0 = Sunday, 1 = Monday.
+             * @enum {integer}
+             */
+            week_start: 0 | 1;
         };
         UpdateMeRequest: {
-            display_name: string;
+            display_name?: string;
+            /**
+             * @description First day of the week. 0 = Sunday, 1 = Monday.
+             * @enum {integer}
+             */
+            week_start?: 0 | 1;
         };
         ChangePasswordRequest: {
             old_password: string;
@@ -699,7 +709,7 @@ export interface components {
             created_at: string;
         };
         /** @enum {string} */
-        Cadence: "daily" | "weekly" | "monthly";
+        Cadence: "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
         CreateRecurringExpenseRequest: {
             description: string;
             /** Format: int64 */

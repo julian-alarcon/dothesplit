@@ -235,6 +235,26 @@ func TestGoldenPath(t *testing.T) {
 	resp, me := request(t, "GET", base+"/v1/me", nil, cookieA)
 	require.Equal(t, http.StatusOK, resp.StatusCode, me)
 	require.Equal(t, "Alice", me["display_name"])
+	// Defaults: week_start = 1 (Monday).
+	require.EqualValues(t, 1, me["week_start"])
+
+	// PATCH /v1/me — flip week_start to Sunday.
+	resp, updMe := request(t, "PATCH", base+"/v1/me", map[string]any{"week_start": 0}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode, updMe)
+	require.EqualValues(t, 0, updMe["week_start"])
+	require.Equal(t, "Alice", updMe["display_name"]) // unchanged
+
+	// Invalid week_start (outside enum) → 400.
+	resp, _ = request(t, "PATCH", base+"/v1/me", map[string]any{"week_start": 2}, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Empty PATCH → 400.
+	resp, _ = request(t, "PATCH", base+"/v1/me", map[string]any{}, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Restore for downstream tests.
+	resp, _ = request(t, "PATCH", base+"/v1/me", map[string]any{"week_start": 1}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	resp, _ = request(t, "GET", base+"/v1/me", nil, nil)
 	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)

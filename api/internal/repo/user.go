@@ -21,6 +21,7 @@ type User struct {
 	DeletedAt       *time.Time
 	Avatar          []byte
 	AvatarUpdatedAt *time.Time
+	WeekStart       int16
 }
 
 type UserRepo struct {
@@ -29,11 +30,11 @@ type UserRepo struct {
 
 func NewUserRepo(p *pgxpool.Pool) *UserRepo { return &UserRepo{pool: p} }
 
-const userCols = `id, email_hash, email_encrypted, display_name, password_hash, created_at, deleted_at, avatar_updated_at`
+const userCols = `id, email_hash, email_encrypted, display_name, password_hash, created_at, deleted_at, avatar_updated_at, week_start`
 
 func scanUser(row pgx.Row, u *User) error {
 	return row.Scan(&u.ID, &u.EmailHash, &u.EmailEncrypted, &u.DisplayName,
-		&u.PasswordHash, &u.CreatedAt, &u.DeletedAt, &u.AvatarUpdatedAt)
+		&u.PasswordHash, &u.CreatedAt, &u.DeletedAt, &u.AvatarUpdatedAt, &u.WeekStart)
 }
 
 func (r *UserRepo) Create(ctx context.Context, u *User) error {
@@ -83,6 +84,22 @@ func (r *UserRepo) UpdateDisplayName(ctx context.Context, id uuid.UUID, name str
 		UPDATE users SET display_name = $2
 		WHERE id = $1 AND deleted_at IS NULL
 	`, id, name)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateWeekStart sets the user's preferred first day of the week.
+// Caller must validate that v is in the allowed set (currently 0 or 1).
+func (r *UserRepo) UpdateWeekStart(ctx context.Context, id uuid.UUID, v int16) error {
+	ct, err := r.pool.Exec(ctx, `
+		UPDATE users SET week_start = $2
+		WHERE id = $1 AND deleted_at IS NULL
+	`, id, v)
 	if err != nil {
 		return err
 	}

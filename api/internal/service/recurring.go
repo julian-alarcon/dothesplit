@@ -157,7 +157,7 @@ func (s *RecurringService) Tick(ctx context.Context) (int, error) {
 
 func isValidCadence(c string) bool {
 	switch c {
-	case "daily", "weekly", "monthly":
+	case "daily", "weekly", "biweekly", "monthly", "yearly":
 		return true
 	}
 	return false
@@ -169,8 +169,12 @@ func advanceCadence(from time.Time, cadence string) time.Time {
 		return from.AddDate(0, 0, 1)
 	case "weekly":
 		return from.AddDate(0, 0, 7)
+	case "biweekly":
+		return from.AddDate(0, 0, 14)
 	case "monthly":
 		return from.AddDate(0, 1, 0)
+	case "yearly":
+		return from.AddDate(1, 0, 0)
 	}
 	return from
 }

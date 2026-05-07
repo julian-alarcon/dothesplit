@@ -63,6 +63,15 @@ func (s *MeService) Rename(ctx context.Context, userID uuid.UUID, displayName st
 	return s.users.UpdateDisplayName(ctx, userID, displayName)
 }
 
+// SetWeekStart updates the user's preferred first day of the week.
+// Allowed values: 0 (Sunday) or 1 (Monday).
+func (s *MeService) SetWeekStart(ctx context.Context, userID uuid.UUID, v int16) error {
+	if v != 0 && v != 1 {
+		return errors.New("week_start must be 0 (Sunday) or 1 (Monday)")
+	}
+	return s.users.UpdateWeekStart(ctx, userID, v)
+}
+
 // ChangePassword rotates the password after verifying the old one and revokes
 // every session the user has (the caller issues a fresh cookie).
 func (s *MeService) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {

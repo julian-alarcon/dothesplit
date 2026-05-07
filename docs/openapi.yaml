@@ -661,7 +661,7 @@ components:
 
     User:
       type: object
-      required: [id, email, display_name, created_at, has_avatar]
+      required: [id, email, display_name, created_at, has_avatar, week_start]
       properties:
         id: { type: string, format: uuid }
         email: { type: string, format: email }
@@ -678,13 +678,21 @@ components:
           type: string
           format: date-time
           description: Set when the account has been soft-deleted; `display_name` is then a tombstone.
+        week_start:
+          type: integer
+          enum: [0, 1]
+          description: First day of the week in calendar UIs. 0 = Sunday, 1 = Monday.
 
     UpdateMeRequest:
       type: object
       additionalProperties: false
-      required: [display_name]
+      minProperties: 1
       properties:
         display_name: { type: string, minLength: 1, maxLength: 80 }
+        week_start:
+          type: integer
+          enum: [0, 1]
+          description: First day of the week. 0 = Sunday, 1 = Monday.
 
     ChangePasswordRequest:
       type: object
@@ -1008,7 +1016,7 @@ components:
 
     Cadence:
       type: string
-      enum: [daily, weekly, monthly]
+      enum: [daily, weekly, biweekly, monthly, yearly]
 
     CreateRecurringExpenseRequest:
       type: object

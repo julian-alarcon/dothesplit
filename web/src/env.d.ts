@@ -10,6 +10,7 @@ declare namespace App {
       has_avatar: boolean;
       avatar_updated_at?: string | null;
       deleted_at?: string | null;
+      week_start: 0 | 1;
     } | null;
     /** Raw cookie header forwarded to the API on server-side fetches. */
     cookie: string;

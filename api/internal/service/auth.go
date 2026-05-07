@@ -42,6 +42,7 @@ type User struct {
 	HasAvatar       bool
 	AvatarUpdatedAt *time.Time
 	DeletedAt       *time.Time
+	WeekStart       int16
 }
 
 func (s *AuthService) toUser(u *repo.User) (*User, error) {
@@ -57,6 +58,7 @@ func (s *AuthService) toUser(u *repo.User) (*User, error) {
 		HasAvatar:       u.AvatarUpdatedAt != nil,
 		AvatarUpdatedAt: u.AvatarUpdatedAt,
 		DeletedAt:       u.DeletedAt,
+		WeekStart:       u.WeekStart,
 	}, nil
 }
 

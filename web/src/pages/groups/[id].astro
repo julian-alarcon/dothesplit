@@ -8,11 +8,12 @@ import { apiFor } from "@/lib/api/client";
 const { id } = Astro.params as { id: string };
 const api = apiFor(Astro.locals.cookie);
 
-const [groupsRes, expensesRes, balancesRes, categoriesRes] = await Promise.all([
+const [groupsRes, expensesRes, balancesRes, categoriesRes, recurringRes] = await Promise.all([
   api.GET("/v1/groups"),
   api.GET("/v1/groups/{id}/expenses", { params: { path: { id } } }),
   api.GET("/v1/groups/{id}/balances", { params: { path: { id } } }),
   api.GET("/v1/categories"),
+  api.GET("/v1/groups/{id}/recurring-expenses", { params: { path: { id } } }),
 ]);
 
 const group = groupsRes.data?.find((g) => g.id === id);
@@ -22,7 +23,32 @@ if (!group) {
 const expenses = expensesRes.data ?? [];
 const net = balancesRes.data?.net ?? [];
 const simplified = balancesRes.data?.simplified ?? [];
+const recurringTemplates = recurringRes.data ?? [];
 const categories = categoriesRes.data ?? [];
+
+// Match expenses to a recurring template by content (no FK linking the two).
+// Same group + description + payer + amount + currency + category + mode is
+// strong enough; collisions in practice would be expenses that look identical
+// to a template, in which case showing the badge is still correct intent.
+const cadenceLabels: Record<string, string> = {
+  daily: "daily",
+  weekly: "weekly",
+  biweekly: "every 2 weeks",
+  monthly: "monthly",
+  yearly: "yearly",
+};
+const cadenceByExpense = new Map<string, string>();
+for (const e of expenses) {
+  const tpl = recurringTemplates.find(
+    (r) =>
+      r.description === e.description &&
+      r.amount_cents === e.amount_cents &&
+      r.payer_id === e.payer_id &&
+      r.currency === e.currency &&
+      r.category_id === e.category_id,
+  );
+  if (tpl) cadenceByExpense.set(e.id, tpl.cadence);
+}
 const categoryByID = new Map(categories.map((c) => [c.id, c]));
 const otherCategory = categories.find((c) => c.slug === "other");
 const defaultCategoryID = otherCategory?.id ?? categories[0]?.id ?? "";
@@ -50,12 +76,22 @@ const todayISO = new Date().toISOString().slice(0, 10);
 <Base title={group.name}>
   <div class="mb-2 flex items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold">{group.name}</h1>
-    <a
-      href={`/groups/${id}/settings`}
-      class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-    >
-      Group settings
-    </a>
+    <div class="flex items-center gap-2">
+      {recurringTemplates.length > 0 && (
+        <a
+          href={`/groups/${id}/recurring`}
+          class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+        >
+          Recurring ({recurringTemplates.length})
+        </a>
+      )}
+      <a
+        href={`/groups/${id}/settings`}
+        class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+      >
+        Group settings
+      </a>
+    </div>
   </div>
   <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
     {group.members.length} member{group.members.length === 1 ? "" : "s"} · default currency {currency}
@@ -194,7 +230,14 @@ const todayISO = new Date().toISOString().slice(0, 10);
         />
       </div>
       <div class="flex items-center justify-end gap-2">
-        <DatePicker name="incurred_at" value={todayISO} variant="compact" ariaLabel="Pick date" />
+        <DatePicker
+          name="incurred_at"
+          value={todayISO}
+          variant="compact"
+          ariaLabel="Pick date"
+          cadenceName="cadence"
+          weekStart={Astro.locals.user?.week_start === 0 ? 0 : 1}
+        />
         <button type="submit" class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900">
           Add expense
         </button>
@@ -210,6 +253,7 @@ const todayISO = new Date().toISOString().slice(0, 10);
       <ul class="flex flex-col gap-2">
         {expenses.map((e) => {
           const cat = categoryByID.get(e.category_id);
+          const cadence = cadenceByExpense.get(e.id);
           return (
             <li>
               <a
@@ -219,7 +263,17 @@ const todayISO = new Date().toISOString().slice(0, 10);
                 <div class="flex items-center gap-3">
                   <span class="text-xl leading-none" title={cat?.label ?? ""}>{cat?.emoji ?? "📌"}</span>
                   <div>
-                    <div class="font-medium">{e.description}</div>
+                    <div class="flex items-center gap-1.5 font-medium">
+                      <span>{e.description}</span>
+                      {cadence && (
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                          title={`Repeats ${cadenceLabels[cadence] ?? cadence}`}
+                        >
+                          ↻ {cadenceLabels[cadence] ?? cadence}
+                        </span>
+                      )}
+                    </div>
                     <div class="flex items-center gap-1.5 text-xs text-neutral-500">
                       <span>{dateFmt.format(new Date(e.incurred_at))} · paid by</span>
                       <Avatar

@@ -1,0 +1,114 @@
+---
+import Base from "@/layouts/Base.astro";
+import Avatar from "@/components/Avatar.astro";
+import { apiFor } from "@/lib/api/client";
+
+const { id } = Astro.params as { id: string };
+const api = apiFor(Astro.locals.cookie);
+
+const [groupsRes, recurringRes, categoriesRes] = await Promise.all([
+  api.GET("/v1/groups"),
+  api.GET("/v1/groups/{id}/recurring-expenses", { params: { path: { id } } }),
+  api.GET("/v1/categories"),
+]);
+
+const group = groupsRes.data?.find((g) => g.id === id);
+if (!group) {
+  return Astro.redirect("/groups");
+}
+const templates = recurringRes.data ?? [];
+const categories = categoriesRes.data ?? [];
+const categoryByID = new Map(categories.map((c) => [c.id, c]));
+
+const nameByUserID = new Map<string, string>();
+const memberByID = new Map(group.members.map((m) => [m.user_id, m]));
+for (const m of group.members) nameByUserID.set(m.user_id, m.display_name);
+
+const cadenceLabels: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Every 2 weeks",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
+const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
+const showError = Astro.url.searchParams.get("error") === "1";
+---
+
+<Base title={`${group.name} — recurring`}>
+  <div class="mb-4 flex items-center gap-2 text-sm">
+    <a href={`/groups/${id}`} class="text-neutral-600 hover:underline dark:text-neutral-400">← Back to {group.name}</a>
+  </div>
+
+  <h1 class="mb-2 text-2xl font-semibold">Recurring expenses</h1>
+  <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+    Templates the worker uses to materialize new expenses on a schedule. Stopping a template
+    keeps past expenses in place — only future runs are cancelled.
+  </p>
+
+  {showError && (
+    <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      Could not stop the template. Try again.
+    </p>
+  )}
+
+  {templates.length === 0 ? (
+    <p class="text-sm text-neutral-500">No recurring templates in this group.</p>
+  ) : (
+    <ul class="flex flex-col gap-2">
+      {templates.map((t) => {
+        const cat = categoryByID.get(t.category_id);
+        const moneyFmt = new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: t.currency,
+          currencyDisplay: "narrowSymbol",
+        });
+        return (
+          <li class="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex items-start gap-3">
+                <span class="text-2xl leading-none" title={cat?.label ?? ""}>{cat?.emoji ?? "📌"}</span>
+                <div class="flex flex-col gap-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-medium">{t.description}</span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                      ↻ {cadenceLabels[t.cadence] ?? t.cadence}
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500">
+                    <span>Paid by</span>
+                    <Avatar
+                      userId={t.payer_id}
+                      displayName={nameByUserID.get(t.payer_id) ?? "?"}
+                      hasAvatar={memberByID.get(t.payer_id)?.has_avatar}
+                      avatarUpdatedAt={memberByID.get(t.payer_id)?.avatar_updated_at}
+                      size={16}
+                    />
+                    <span>{nameByUserID.get(t.payer_id) ?? "?"}</span>
+                    <span>· next on {dateFmt.format(new Date(t.next_run_at))}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
+                <span class="font-mono text-sm">{moneyFmt.format(t.amount_cents / 100)}</span>
+                <form
+                  method="POST"
+                  action={`/api/recurring-delete?id=${t.id}&group=${id}`}
+                  onsubmit="return confirm('Stop this recurring template? Past expenses are kept; future runs are cancelled.');"
+                >
+                  <button
+                    type="submit"
+                    class="rounded-md border border-red-600 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-950"
+                  >
+                    Stop
+                  </button>
+                </form>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</Base>

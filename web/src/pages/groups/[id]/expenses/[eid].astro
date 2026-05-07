@@ -8,11 +8,12 @@ import { apiFor } from "@/lib/api/client";
 const { id, eid } = Astro.params as { id: string; eid: string };
 const api = apiFor(Astro.locals.cookie);
 
-const [groupsRes, expenseRes, revisionsRes, categoriesRes] = await Promise.all([
+const [groupsRes, expenseRes, revisionsRes, categoriesRes, recurringRes] = await Promise.all([
   api.GET("/v1/groups"),
   api.GET("/v1/expenses/{id}", { params: { path: { id: eid } } }),
   api.GET("/v1/expenses/{id}/revisions", { params: { path: { id: eid } } }),
   api.GET("/v1/categories"),
+  api.GET("/v1/groups/{id}/recurring-expenses", { params: { path: { id } } }),
 ]);
 
 const group = groupsRes.data?.find((g) => g.id === id);
@@ -40,6 +41,25 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 const incurredAtISO = new Date(expense.incurred_at).toISOString().slice(0, 10);
 const createdAtDiffers =
   new Date(expense.created_at).toISOString().slice(0, 10) !== incurredAtISO;
+
+// Same content-match heuristic as the group page — flag the expense if a
+// recurring template with matching shape exists.
+const cadenceLabels: Record<string, string> = {
+  daily: "daily",
+  weekly: "weekly",
+  biweekly: "every 2 weeks",
+  monthly: "monthly",
+  yearly: "yearly",
+};
+const matchedTemplate = (recurringRes.data ?? []).find(
+  (r) =>
+    r.description === expense.description &&
+    r.amount_cents === expense.amount_cents &&
+    r.payer_id === expense.payer_id &&
+    r.currency === expense.currency &&
+    r.category_id === expense.category_id,
+);
+const expenseCadence = matchedTemplate?.cadence;
 
 const userID = Astro.locals.user?.id;
 const isMember = group.members.some((m) => m.user_id === userID);
@@ -101,7 +121,17 @@ const fieldLabel: Record<string, string> = {
   <div class="mb-6 flex items-center gap-3">
     <span class="text-3xl leading-none">{currentCategory?.emoji ?? "📌"}</span>
     <div>
-      <h1 class="text-2xl font-semibold">{expense.description}</h1>
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="text-2xl font-semibold">{expense.description}</h1>
+        {expenseCadence && (
+          <span
+            class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+            title={`Repeats ${cadenceLabels[expenseCadence] ?? expenseCadence}`}
+          >
+            ↻ Repeats {cadenceLabels[expenseCadence] ?? expenseCadence}
+          </span>
+        )}
+      </div>
       <p class="flex flex-wrap items-center gap-1.5 text-sm text-neutral-500">
         <span>{dateFmt.format(new Date(expense.incurred_at))} · paid by</span>
         <Avatar
@@ -210,7 +240,13 @@ const fieldLabel: Record<string, string> = {
           />
         </div>
         <div class="flex items-center justify-end gap-2">
-          <DatePicker name="incurred_at" value={incurredAtISO} variant="compact" ariaLabel="Pick date" />
+          <DatePicker
+            name="incurred_at"
+            value={incurredAtISO}
+            variant="compact"
+            ariaLabel="Pick date"
+            weekStart={Astro.locals.user?.week_start === 0 ? 0 : 1}
+          />
           <button
             type="submit"
             data-dirty-submit
