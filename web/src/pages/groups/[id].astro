@@ -74,26 +74,26 @@ const todayISO = new Date().toISOString().slice(0, 10);
 ---
 
 <Base title={group.name}>
-  <div class="mb-2 flex items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold">{group.name}</h1>
-    <div class="flex items-center gap-2">
+  <div class="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <h1 class="truncate text-2xl font-semibold">{group.name}</h1>
+    <div class="flex flex-wrap items-center gap-2">
       {recurringTemplates.length > 0 && (
         <a
           href={`/groups/${id}/recurring`}
-          class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+          class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
         >
           Recurring ({recurringTemplates.length})
         </a>
       )}
       <a
         href={`/groups/${id}/settings`}
-        class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+        class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
       >
         Group settings
       </a>
     </div>
   </div>
-  <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+  <p class="mb-6 text-sm text-neutral-700 dark:text-neutral-300">
     {group.members.length} member{group.members.length === 1 ? "" : "s"} · default currency {currency}
   </p>
 
@@ -102,73 +102,75 @@ const todayISO = new Date().toISOString().slice(0, 10);
       <h2 class="font-medium">Balances</h2>
       <a
         href={`/groups/${id}/settle`}
-        class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+        class="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
       >
         Settle up
       </a>
     </div>
-    <ul class="flex flex-col gap-1 text-sm">
-      {net.map((b) => {
-        const m = memberByID.get(b.user_id);
-        return (
-          <li class="flex items-center justify-between gap-2">
-            <span class="flex items-center gap-2">
-              <Avatar
-                userId={b.user_id}
-                displayName={b.display_name}
-                hasAvatar={m?.has_avatar}
-                avatarUpdatedAt={m?.avatar_updated_at}
-                size={20}
-              />
-              <span>{b.display_name}</span>
-            </span>
-            <span class={b.net_cents >= 0 ? "text-emerald-600" : "text-red-600"}>
-              {format(b.net_cents)}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-    {simplified.length > 0 && (
-      <>
-        <h3 class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Suggested transfers</h3>
-        <ul class="flex flex-col gap-1 text-sm">
-          {simplified.map((d) => {
-            const from = memberByID.get(d.from_user_id);
-            const to = memberByID.get(d.to_user_id);
-            return (
-              <li class="flex items-center justify-between gap-2">
-                <span class="flex items-center gap-2">
-                  <Avatar
-                    userId={d.from_user_id}
-                    displayName={from?.display_name ?? "?"}
-                    hasAvatar={from?.has_avatar}
-                    avatarUpdatedAt={from?.avatar_updated_at}
-                    size={18}
-                  />
-                  <span>{nameByUserID.get(d.from_user_id)}</span>
-                  <span class="text-neutral-500">→</span>
-                  <Avatar
-                    userId={d.to_user_id}
-                    displayName={to?.display_name ?? "?"}
-                    hasAvatar={to?.has_avatar}
-                    avatarUpdatedAt={to?.avatar_updated_at}
-                    size={18}
-                  />
-                  <span>{nameByUserID.get(d.to_user_id)}</span>
-                </span>
-                <span>{format(d.amount_cents)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </>
-    )}
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <ul class="flex flex-col gap-2 text-sm">
+        {net.map((b) => {
+          const m = memberByID.get(b.user_id);
+          return (
+            <li class="flex items-center justify-between gap-2">
+              <span class="flex min-w-0 items-center gap-2">
+                <Avatar
+                  userId={b.user_id}
+                  displayName={b.display_name}
+                  hasAvatar={m?.has_avatar}
+                  avatarUpdatedAt={m?.avatar_updated_at}
+                  size={20}
+                />
+                <span class="truncate">{b.display_name}</span>
+              </span>
+              <span class={`shrink-0 font-mono ${b.net_cents >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                {format(b.net_cents)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {simplified.length > 0 && (
+        <div>
+          <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Suggested transfers</h3>
+          <ul class="flex flex-col gap-2 text-sm">
+            {simplified.map((d) => {
+              const from = memberByID.get(d.from_user_id);
+              const to = memberByID.get(d.to_user_id);
+              return (
+                <li class="flex items-center justify-between gap-2">
+                  <span class="flex min-w-0 items-center gap-2">
+                    <Avatar
+                      userId={d.from_user_id}
+                      displayName={from?.display_name ?? "?"}
+                      hasAvatar={from?.has_avatar}
+                      avatarUpdatedAt={from?.avatar_updated_at}
+                      size={18}
+                    />
+                    <span class="truncate">{nameByUserID.get(d.from_user_id)}</span>
+                    <span class="text-neutral-600 dark:text-neutral-400">→</span>
+                    <Avatar
+                      userId={d.to_user_id}
+                      displayName={to?.display_name ?? "?"}
+                      hasAvatar={to?.has_avatar}
+                      avatarUpdatedAt={to?.avatar_updated_at}
+                      size={18}
+                    />
+                    <span class="truncate">{nameByUserID.get(d.to_user_id)}</span>
+                  </span>
+                  <span class="shrink-0 font-mono">{format(d.amount_cents)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   </section>
 
   <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
     <h2 class="mb-3 font-medium">Add expense</h2>
-    <form method="POST" action={`/api/expenses?id=${id}`} class="flex flex-col gap-3">
+    <form method="POST" action={`/api/expenses?id=${id}`} class="flex flex-col gap-4">
       <label class="flex flex-col gap-1 text-sm">
         <span>Description</span>
         <div class="flex items-stretch gap-2">
@@ -206,29 +208,28 @@ const todayISO = new Date().toISOString().slice(0, 10);
           <input name="description" required maxlength="200" placeholder="What was it?" class="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" />
         </div>
       </label>
-      <label class="flex flex-col gap-1 text-sm">
-        <span>Amount ({currency})</span>
-        <input type="number" name="amount_dollars" step="0.01" min="0.01" required class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm">
-        <span>Payer</span>
-        <select name="payer_id" required class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950">
-          {group.members.map((m) => (
-            <option value={m.user_id} selected={m.user_id === Astro.locals.user?.id}>
-              {m.display_name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div class="flex flex-col gap-1 text-sm">
-        <span>Split</span>
-        <SplitEditor
-          members={group.members}
-          currency={currency}
-          currentUserId={Astro.locals.user?.id}
-          defaultSplit={group.default_split ?? []}
-        />
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label class="flex flex-col gap-1 text-sm">
+          <span>Amount ({currency})</span>
+          <input type="number" name="amount_dollars" step="0.01" min="0.01" required class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" />
+        </label>
+        <label class="flex flex-col gap-1 text-sm">
+          <span>Payer</span>
+          <select name="payer_id" required class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950">
+            {group.members.map((m) => (
+              <option value={m.user_id} selected={m.user_id === Astro.locals.user?.id}>
+                {m.display_name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+      <SplitEditor
+        members={group.members}
+        currency={currency}
+        currentUserId={Astro.locals.user?.id}
+        defaultSplit={group.default_split ?? []}
+      />
       <div class="flex items-center justify-end gap-2">
         <DatePicker
           name="incurred_at"
@@ -238,7 +239,10 @@ const todayISO = new Date().toISOString().slice(0, 10);
           cadenceName="cadence"
           weekStart={Astro.locals.user?.week_start === 0 ? 0 : 1}
         />
-        <button type="submit" class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900">
+        <button
+          type="submit"
+          class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-neutral-500"
+        >
           Add expense
         </button>
       </div>
@@ -258,23 +262,23 @@ const todayISO = new Date().toISOString().slice(0, 10);
             <li>
               <a
                 href={`/groups/${id}/expenses/${e.id}`}
-                class="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+                class="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-xl leading-none" title={cat?.label ?? ""}>{cat?.emoji ?? "📌"}</span>
-                  <div>
-                    <div class="flex items-center gap-1.5 font-medium">
-                      <span>{e.description}</span>
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="shrink-0 text-xl leading-none" title={cat?.label ?? ""}>{cat?.emoji ?? "📌"}</span>
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5 font-medium">
+                      <span class="truncate">{e.description}</span>
                       {cadence && (
                         <span
-                          class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                          class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
                           title={`Repeats ${cadenceLabels[cadence] ?? cadence}`}
                         >
                           ↻ {cadenceLabels[cadence] ?? cadence}
                         </span>
                       )}
                     </div>
-                    <div class="flex items-center gap-1.5 text-xs text-neutral-500">
+                    <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
                       <span>{dateFmt.format(new Date(e.incurred_at))} · paid by</span>
                       <Avatar
                         userId={e.payer_id}
@@ -283,11 +287,11 @@ const todayISO = new Date().toISOString().slice(0, 10);
                         avatarUpdatedAt={memberByID.get(e.payer_id)?.avatar_updated_at}
                         size={16}
                       />
-                      <span>{nameByUserID.get(e.payer_id) ?? "?"}</span>
+                      <span class="truncate">{nameByUserID.get(e.payer_id) ?? "?"}</span>
                     </div>
                   </div>
                 </div>
-                <span class="font-mono">
+                <span class="shrink-0 font-mono">
                   {new Intl.NumberFormat(undefined, { style: "currency", currency: e.currency, currencyDisplay: "narrowSymbol" }).format(e.amount_cents / 100)}
                 </span>
               </a>

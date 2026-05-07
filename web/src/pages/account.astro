@@ -1,6 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
+import ConfirmDialog from "@/components/ConfirmDialog.astro";
 const PREVIEW_SIZE = 64;
 
 const user = Astro.locals.user;
@@ -36,17 +37,25 @@ const okMessages: Record<string, string> = {
       />
       <div>
         <h1 class="text-2xl font-semibold">{user.display_name}</h1>
-        <p class="text-sm text-neutral-500">{user.email}</p>
+        <p class="text-sm text-neutral-600 dark:text-neutral-400">{user.email}</p>
       </div>
     </div>
 
     {err && errorMessages[err] && (
-      <p class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      <p
+        role="status"
+        aria-live="polite"
+        class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
         {errorMessages[err]}
       </p>
     )}
     {ok && okMessages[ok] && (
-      <p class="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+      <p
+        role="status"
+        aria-live="polite"
+        class="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+      >
         {okMessages[ok]}
       </p>
     )}
@@ -181,7 +190,7 @@ const okMessages: Record<string, string> = {
             <option value="1" selected={user.week_start === 1}>Monday</option>
             <option value="0" selected={user.week_start === 0}>Sunday</option>
           </select>
-          <span class="text-xs text-neutral-500">Used by the calendar in date pickers across the app.</span>
+          <span class="text-xs text-neutral-600 dark:text-neutral-400">Used by the calendar in date pickers across the app.</span>
         </label>
         <div class="flex justify-end">
           <button type="submit" class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
@@ -197,19 +206,26 @@ const okMessages: Record<string, string> = {
         Deleting your account removes your email, password and avatar. Your name is replaced with a stable tombstone so
         shared expenses other members still depend on stay traceable. This cannot be undone.
       </p>
-      <form
-        method="POST"
-        action="/api/me-delete"
-        onsubmit="return confirm('Permanently delete your account? Expenses you paid for stay visible under a tombstone. This cannot be undone.');"
-      >
-        <button type="submit" class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+      <form method="POST" action="/api/me-delete">
+        <button
+          type="button"
+          data-confirm-open="confirm-delete-account"
+          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+        >
           Delete account
         </button>
       </form>
+      <ConfirmDialog
+        id="confirm-delete-account"
+        title="Delete your account?"
+        message="Expenses you paid for stay visible under a tombstone so other members can still trace shared ledgers. This cannot be undone."
+        confirmLabel="Delete account"
+      />
     </section>
   </div>
 
   <script>
     import "@/scripts/avatar-pixelate.ts";
+    import "@/scripts/confirm-dialog.ts";
   </script>
 </Base>

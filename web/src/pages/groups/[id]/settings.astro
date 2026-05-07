@@ -1,6 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
+import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id } = Astro.params as { id: string };
@@ -54,7 +55,11 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
   </p>
 
   {showSettingsError && (
-    <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+    <p
+      role="status"
+      aria-live="polite"
+      class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+    >
       {errorReason ? errorReason : "Could not update the group. Check your input and try again."}
     </p>
   )}
@@ -95,13 +100,13 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
 
   <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
     <h2 class="mb-3 font-medium">Members</h2>
-    <ul class="mb-3 flex flex-col gap-1 text-sm">
+    <ul class="mb-3 flex flex-col gap-2 text-sm">
       {group.members.map((m) => {
         const isThisCreator = m.user_id === group.created_by;
         const canRemove = isCreator && !isThisCreator;
         return (
           <li class="flex items-center justify-between gap-2">
-            <span class="flex items-center gap-2">
+            <span class="flex min-w-0 items-center gap-2">
               <Avatar
                 userId={m.user_id}
                 displayName={m.display_name}
@@ -109,22 +114,31 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
                 avatarUpdatedAt={m.avatar_updated_at}
                 size={20}
               />
-              <span>{m.display_name}</span>
+              <span class="truncate">{m.display_name}</span>
             </span>
-            <span class="flex items-center gap-2">
+            <span class="flex shrink-0 items-center gap-2">
               {isThisCreator && (
-                <span class="text-xs uppercase tracking-wide text-neutral-500">creator</span>
+                <span class="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">creator</span>
               )}
               {canRemove && (
-                <form method="POST" action={`/api/group-member-remove?id=${id}`}>
-                  <input type="hidden" name="user_id" value={m.user_id} />
-                  <button
-                    type="submit"
-                    class="rounded-md border border-red-300 bg-white px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-neutral-900 dark:text-red-300 dark:hover:bg-red-950"
-                  >
-                    Remove
-                  </button>
-                </form>
+                <>
+                  <form method="POST" action={`/api/group-member-remove?id=${id}`}>
+                    <input type="hidden" name="user_id" value={m.user_id} />
+                    <button
+                      type="button"
+                      data-confirm-open={`confirm-remove-${m.user_id}`}
+                      class="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-red-900 dark:bg-neutral-900 dark:text-red-300 dark:hover:bg-red-950 dark:focus-visible:ring-neutral-500"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                  <ConfirmDialog
+                    id={`confirm-remove-${m.user_id}`}
+                    title={`Remove ${m.display_name}?`}
+                    message="Their past expenses, splits and settlements stay in the group ledger. They can be re-added later."
+                    confirmLabel="Remove member"
+                  />
+                </>
               )}
             </span>
           </li>
@@ -152,7 +166,7 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
         Add
       </button>
     </form>
-    <p class="mt-1 text-xs text-neutral-500">The invitee must already be registered.</p>
+    <p class="mt-1 text-xs text-neutral-600 dark:text-neutral-400">The invitee must already be registered.</p>
   </section>
 
   <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -186,10 +200,10 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
               disabled={!isPair}
               class="w-20 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm tabular-nums disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-950"
             />
-            <span class="text-neutral-500">%</span>
+            <span class="text-neutral-600 dark:text-neutral-400">%</span>
           </div>
         ))}
-        <p class="text-xs text-neutral-500">Must sum to 100.</p>
+        <p class="text-xs text-neutral-600 dark:text-neutral-400">Must sum to 100.</p>
         <div class="flex gap-2">
           <button
             type="submit"
@@ -259,7 +273,6 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
         method="POST"
         action={`/api/group-transfer-ownership?id=${id}`}
         class="flex flex-col gap-2 sm:flex-row sm:items-center"
-        onsubmit="return confirm('Transfer ownership to the selected member? You will become a regular member.');"
       >
         <select
           name="new_owner_id"
@@ -273,12 +286,20 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
             ))}
         </select>
         <button
-          type="submit"
-          class="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          type="button"
+          data-confirm-open="confirm-transfer-ownership"
+          class="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-neutral-500"
         >
           Transfer
         </button>
       </form>
+      <ConfirmDialog
+        id="confirm-transfer-ownership"
+        title="Transfer ownership?"
+        message="The selected member becomes the new owner. You will keep being a regular member of the group."
+        confirmLabel="Transfer ownership"
+        confirmVariant="primary"
+      />
     </section>
   )}
 
@@ -288,18 +309,25 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
       <p class="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
         Deleting the group removes all its expenses, settlements and recurring templates. This cannot be undone.
       </p>
-      <form
-        method="POST"
-        action={`/api/group-delete?id=${id}`}
-        onsubmit="return confirm('Delete this group and all its data? This cannot be undone.');"
-      >
+      <form method="POST" action={`/api/group-delete?id=${id}`}>
         <button
-          type="submit"
-          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          type="button"
+          data-confirm-open="confirm-delete-group"
+          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
         >
           Delete group
         </button>
       </form>
+      <ConfirmDialog
+        id="confirm-delete-group"
+        title="Delete this group?"
+        message="All expenses, settlements and recurring templates in this group are removed permanently. This cannot be undone."
+        confirmLabel="Delete group"
+      />
     </section>
   )}
+
+  <script>
+    import "@/scripts/confirm-dialog.ts";
+  </script>
 </Base>

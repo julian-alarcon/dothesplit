@@ -1,6 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
+import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id } = Astro.params as { id: string };
@@ -48,7 +49,11 @@ const showError = Astro.url.searchParams.get("error") === "1";
   </p>
 
   {showError && (
-    <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+    <p
+      role="status"
+      aria-live="polite"
+      class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+    >
       Could not stop the template. Try again.
     </p>
   )}
@@ -69,14 +74,14 @@ const showError = Astro.url.searchParams.get("error") === "1";
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="flex items-start gap-3">
                 <span class="text-2xl leading-none" title={cat?.label ?? ""}>{cat?.emoji ?? "📌"}</span>
-                <div class="flex flex-col gap-1">
+                <div class="flex min-w-0 flex-col gap-1">
                   <div class="flex flex-wrap items-center gap-2">
-                    <span class="font-medium">{t.description}</span>
-                    <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                    <span class="truncate font-medium">{t.description}</span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
                       ↻ {cadenceLabels[t.cadence] ?? t.cadence}
                     </span>
                   </div>
-                  <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500">
+                  <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
                     <span>Paid by</span>
                     <Avatar
                       userId={t.payer_id}
@@ -95,15 +100,21 @@ const showError = Astro.url.searchParams.get("error") === "1";
                 <form
                   method="POST"
                   action={`/api/recurring-delete?id=${t.id}&group=${id}`}
-                  onsubmit="return confirm('Stop this recurring template? Past expenses are kept; future runs are cancelled.');"
                 >
                   <button
-                    type="submit"
-                    class="rounded-md border border-red-600 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-950"
+                    type="button"
+                    data-confirm-open={`confirm-stop-${t.id}`}
+                    class="rounded-md border border-red-600 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-red-500 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-950 dark:focus-visible:ring-neutral-500"
                   >
                     Stop
                   </button>
                 </form>
+                <ConfirmDialog
+                  id={`confirm-stop-${t.id}`}
+                  title="Stop this recurring template?"
+                  message="Past expenses already created from this template stay in place. Only future runs are cancelled."
+                  confirmLabel="Stop template"
+                />
               </div>
             </div>
           </li>
@@ -111,4 +122,8 @@ const showError = Astro.url.searchParams.get("error") === "1";
       })}
     </ul>
   )}
+
+  <script>
+    import "@/scripts/confirm-dialog.ts";
+  </script>
 </Base>

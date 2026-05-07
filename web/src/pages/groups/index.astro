@@ -20,7 +20,10 @@ for (const g of groups) {
 <Base title="Groups">
   <div class="mb-4 flex items-center justify-between">
     <h1 class="text-2xl font-semibold">Your groups</h1>
-    <a href="/groups/new" class="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900">
+    <a
+      href="/groups/new"
+      class="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-neutral-500"
+    >
       New group
     </a>
   </div>
@@ -30,20 +33,23 @@ for (const g of groups) {
       No groups yet. <a href="/groups/new" class="underline">Create one</a>.
     </p>
   ) : (
-    <ul class="flex flex-col gap-2">
+    <ul class="flex flex-col gap-3">
       {groups.map((g) => {
         const ownerName = ownerByGroup.get(g.id) ?? "";
         const youAreOwner = g.created_by === myID;
         return (
           <li>
-            <a href={`/groups/${g.id}`} class="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+            <a
+              href={`/groups/${g.id}`}
+              class="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
+            >
               <span class="flex min-w-0 flex-col">
-                <span class="font-medium truncate">{g.name}</span>
-                <span class="text-xs text-neutral-500">
+                <span class="truncate font-medium">{g.name}</span>
+                <span class="truncate text-xs text-neutral-600 dark:text-neutral-400">
                   Created by {youAreOwner ? "you" : ownerName}
                 </span>
               </span>
-              <span class="shrink-0 text-sm text-neutral-500">
+              <span class="shrink-0 text-sm text-neutral-600 dark:text-neutral-400">
                 {g.members.length} member{g.members.length === 1 ? "" : "s"} · {g.default_currency}
               </span>
             </a>

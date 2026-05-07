@@ -7,7 +7,11 @@ const showError = Astro.url.searchParams.get("error") === "1";
   <div class="mx-auto max-w-sm">
     <h1 class="mb-6 text-2xl font-semibold">Log in</h1>
     {showError && (
-      <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      <p
+        role="status"
+        aria-live="polite"
+        class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
         Invalid email or password.
       </p>
     )}
@@ -20,12 +24,15 @@ const showError = Astro.url.searchParams.get("error") === "1";
         <span>Password</span>
         <input type="password" name="password" required minlength="10" class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
       </label>
-      <button type="submit" class="mt-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
+      <button
+        type="submit"
+        class="mt-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-neutral-500"
+      >
         Log in
       </button>
     </form>
-    <p class="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
-      No account? <a href="/register" class="underline">Register</a>.
+    <p class="mt-4 text-sm text-neutral-700 dark:text-neutral-300">
+      No account? <a href="/register" class="rounded-md underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500">Register</a>.
     </p>
   </div>
 </Base>

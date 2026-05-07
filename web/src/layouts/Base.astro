@@ -21,11 +21,14 @@ const buildCommit = (process.env.BUILD_COMMIT ?? "dev").slice(0, 12);
   </head>
   <body class="flex min-h-screen flex-col">
     <header class="border-b border-neutral-200 bg-white/70 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/70">
-      <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <a href={user ? "/groups" : "/"} class="text-lg font-semibold">DoTheSplit</a>
         {user ? (
           <div class="flex items-center gap-3 text-sm">
-            <a href="/account" class="flex items-center gap-2 text-neutral-600 hover:underline dark:text-neutral-400">
+            <a
+              href="/account"
+              class="flex items-center gap-2 rounded-md text-neutral-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-300 dark:focus-visible:ring-neutral-500"
+            >
               <Avatar
                 userId={user.id}
                 displayName={user.display_name}
@@ -36,7 +39,12 @@ const buildCommit = (process.env.BUILD_COMMIT ?? "dev").slice(0, 12);
               <span>{user.display_name}</span>
             </a>
             <form method="POST" action="/api/logout">
-              <button class="rounded-md border border-neutral-300 px-3 py-1 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800" type="submit">Log out</button>
+              <button
+                class="rounded-md border border-neutral-300 px-3 py-1 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
+                type="submit"
+              >
+                Log out
+              </button>
             </form>
           </div>
         ) : (
@@ -47,11 +55,11 @@ const buildCommit = (process.env.BUILD_COMMIT ?? "dev").slice(0, 12);
         )}
       </div>
     </header>
-    <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
+    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
       <slot />
     </main>
     <footer class="border-t border-neutral-200 bg-white/70 py-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/70 dark:text-neutral-400">
-      <div class="mx-auto max-w-3xl px-4">
+      <div class="mx-auto max-w-5xl px-4">
         DoTheSplit ·
         {buildCommit === "dev" ? (
           <span>build <code class="font-mono">dev</code></span>

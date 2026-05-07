@@ -396,6 +396,14 @@ function setupEditor(root: HTMLElement) {
     modeInputs.forEach((i) => (i.checked = i.value === mode));
     render();
     dialog.showModal();
+    // Focus the active mode radio so keyboard / screen-reader users land
+    // inside the modal instead of on <body>. Defer until showModal lays out.
+    queueMicrotask(() => {
+      const active = root.querySelector<HTMLInputElement>(
+        `input[name="split_mode"][value="${mode}"]`,
+      );
+      active?.focus();
+    });
   });
 
   cancelBtns.forEach((btn) => {
@@ -405,13 +413,8 @@ function setupEditor(root: HTMLElement) {
     });
   });
 
-  // Close on backdrop click.
-  dialog.addEventListener("click", (e) => {
-    const rect = dialog.getBoundingClientRect();
-    const inside =
-      e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-    if (!inside) dialog.close();
-  });
+  // No backdrop-close listener on purpose — pointer cancellation (WCAG 2.5.7),
+  // matching the DatePicker dialog. Escape still closes via native <dialog>.
 
   doneBtn.addEventListener("click", (e) => {
     e.preventDefault();

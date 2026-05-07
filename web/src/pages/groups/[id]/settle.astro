@@ -24,11 +24,15 @@ const showError = Astro.url.searchParams.get("error") === "1";
 
     <div>
       <h1 class="text-2xl font-semibold">Settle up</h1>
-      <p class="text-sm text-neutral-500">Record a payment from you to another member of {group.name}.</p>
+      <p class="text-sm text-neutral-600 dark:text-neutral-400">Record a payment from you to another member of {group.name}.</p>
     </div>
 
     {showError && (
-      <p class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      <p
+        role="status"
+        aria-live="polite"
+        class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
         Could not record the settlement. Check the amount and recipient and try again.
       </p>
     )}
@@ -89,7 +93,7 @@ const showError = Astro.url.searchParams.get("error") === "1";
     )}
 
     <section class="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">Members you can pay</h2>
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Members you can pay</h2>
       {payees.length === 0 ? (
         <p class="text-sm text-neutral-500">No other members.</p>
       ) : (

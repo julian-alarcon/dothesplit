@@ -3,6 +3,7 @@ import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
 import SplitEditor from "@/components/SplitEditor.astro";
 import DatePicker from "@/components/DatePicker.astro";
+import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id, eid } = Astro.params as { id: string; eid: string };
@@ -125,14 +126,14 @@ const fieldLabel: Record<string, string> = {
         <h1 class="text-2xl font-semibold">{expense.description}</h1>
         {expenseCadence && (
           <span
-            class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+            class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
             title={`Repeats ${cadenceLabels[expenseCadence] ?? expenseCadence}`}
           >
             ↻ Repeats {cadenceLabels[expenseCadence] ?? expenseCadence}
           </span>
         )}
       </div>
-      <p class="flex flex-wrap items-center gap-1.5 text-sm text-neutral-500">
+      <p class="flex flex-wrap items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400">
         <span>{dateFmt.format(new Date(expense.incurred_at))} · paid by</span>
         <Avatar
           userId={expense.payer_id}
@@ -148,7 +149,11 @@ const fieldLabel: Record<string, string> = {
   </div>
 
   {showError && (
-    <p class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+    <p
+      role="status"
+      aria-live="polite"
+      class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+    >
       Could not save. Check your input and try again.
     </p>
   )}
@@ -159,7 +164,7 @@ const fieldLabel: Record<string, string> = {
       <form
         method="POST"
         action={`/api/expense-update?id=${eid}&group=${id}`}
-        class="flex flex-col gap-3"
+        class="flex flex-col gap-4"
         data-dirty-form
       >
         <label class="flex flex-col gap-1 text-sm">
@@ -205,40 +210,39 @@ const fieldLabel: Record<string, string> = {
             />
           </div>
         </label>
-        <label class="flex flex-col gap-1 text-sm">
-          <span>Amount ({currency})</span>
-          <input
-            type="number"
-            name="amount_dollars"
-            step="0.01"
-            min="0.01"
-            required
-            value={formatCents(expense.amount_cents)}
-            class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-          <span>Payer</span>
-          <select
-            name="payer_id"
-            class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
-          >
-            {group.members.map((m) => (
-              <option value={m.user_id} selected={m.user_id === expense.payer_id}>
-                {m.display_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div class="flex flex-col gap-1 text-sm">
-          <span>Split</span>
-          <SplitEditor
-            members={group.members}
-            currency={currency}
-            currentUserId={userID}
-            initialSplits={expense.splits.map((s) => ({ user_id: s.user_id, share_cents: s.share_cents }))}
-          />
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label class="flex flex-col gap-1 text-sm">
+            <span>Amount ({currency})</span>
+            <input
+              type="number"
+              name="amount_dollars"
+              step="0.01"
+              min="0.01"
+              required
+              value={formatCents(expense.amount_cents)}
+              class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span>Payer</span>
+            <select
+              name="payer_id"
+              class="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950"
+            >
+              {group.members.map((m) => (
+                <option value={m.user_id} selected={m.user_id === expense.payer_id}>
+                  {m.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+        <SplitEditor
+          members={group.members}
+          currency={currency}
+          currentUserId={userID}
+          initialSplits={expense.splits.map((s) => ({ user_id: s.user_id, share_cents: s.share_cents }))}
+        />
         <div class="flex items-center justify-end gap-2">
           <DatePicker
             name="incurred_at"
@@ -257,11 +261,11 @@ const fieldLabel: Record<string, string> = {
           </button>
         </div>
         {createdAtDiffers && (
-          <p class="text-xs text-neutral-500">
+          <p class="text-xs text-neutral-600 dark:text-neutral-400">
             Recorded on {dateTimeFmt.format(new Date(expense.created_at))}.
           </p>
         )}
-        <p class="text-xs text-neutral-500">
+        <p class="text-xs text-neutral-600 dark:text-neutral-400">
           Leave the split as-is to keep current shares (rescaled proportionally if the amount changes).
         </p>
       </form>
@@ -275,71 +279,74 @@ const fieldLabel: Record<string, string> = {
     import "@/scripts/dirty-form.ts";
     import "@/scripts/split-editor.ts";
     import "@/scripts/date-picker.ts";
+    import "@/scripts/confirm-dialog.ts";
   </script>
 
-  <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-    <h2 class="mb-3 font-medium">Splits</h2>
-    <ul class="flex flex-col gap-1 text-sm">
-      {expense.splits.map((s) => {
-        const m = memberByID.get(s.user_id);
-        return (
-          <li class="flex items-center justify-between gap-2">
-            <span class="flex items-center gap-2">
-              <Avatar
-                userId={s.user_id}
-                displayName={nameByUserID.get(s.user_id) ?? s.user_id}
-                hasAvatar={m?.has_avatar}
-                avatarUpdatedAt={m?.avatar_updated_at}
-                size={18}
-              />
-              <span>{nameByUserID.get(s.user_id) ?? s.user_id}</span>
-            </span>
-            <span class="font-mono">{formatMoney(s.share_cents)}</span>
-          </li>
-        );
-      })}
-    </ul>
-  </section>
+  <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+    <section class="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <h2 class="mb-3 font-medium">Splits</h2>
+      <ul class="flex flex-col gap-2 text-sm">
+        {expense.splits.map((s) => {
+          const m = memberByID.get(s.user_id);
+          return (
+            <li class="flex items-center justify-between gap-2">
+              <span class="flex min-w-0 items-center gap-2">
+                <Avatar
+                  userId={s.user_id}
+                  displayName={nameByUserID.get(s.user_id) ?? s.user_id}
+                  hasAvatar={m?.has_avatar}
+                  avatarUpdatedAt={m?.avatar_updated_at}
+                  size={18}
+                />
+                <span class="truncate">{nameByUserID.get(s.user_id) ?? s.user_id}</span>
+              </span>
+              <span class="shrink-0 font-mono">{formatMoney(s.share_cents)}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
 
-  <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-    <h2 class="mb-3 font-medium">History</h2>
-    <ul class="flex flex-col divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
-      <li class="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
-        <span class="font-medium">Created</span>
-        <span class="flex items-center gap-1.5 text-xs text-neutral-500">
-          <Avatar
-            userId={expense.created_by}
-            displayName={nameByUserID.get(expense.created_by) ?? "?"}
-            hasAvatar={memberByID.get(expense.created_by)?.has_avatar}
-            avatarUpdatedAt={memberByID.get(expense.created_by)?.avatar_updated_at}
-            size={16}
-          />
-          <span>{nameByUserID.get(expense.created_by) ?? "?"} · {dateTimeFmt.format(new Date(expense.created_at))}</span>
-        </span>
-      </li>
-      {revisions.map((r) => (
+    <section class="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <h2 class="mb-3 font-medium">History</h2>
+      <ul class="flex flex-col divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
         <li class="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
-          <span>
-            <span class="font-medium">{fieldLabel[r.field] ?? r.field}</span>
-            {": "}
-            <span class="text-neutral-500 line-through">{renderValue(r.field, r.old_value)}</span>
-            {" → "}
-            <span>{renderValue(r.field, r.new_value)}</span>
-          </span>
-          <span class="flex items-center gap-1.5 text-xs text-neutral-500">
+          <span class="font-medium">Created</span>
+          <span class="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
             <Avatar
-              userId={r.edited_by}
-              displayName={nameByUserID.get(r.edited_by) ?? "?"}
-              hasAvatar={memberByID.get(r.edited_by)?.has_avatar}
-              avatarUpdatedAt={memberByID.get(r.edited_by)?.avatar_updated_at}
+              userId={expense.created_by}
+              displayName={nameByUserID.get(expense.created_by) ?? "?"}
+              hasAvatar={memberByID.get(expense.created_by)?.has_avatar}
+              avatarUpdatedAt={memberByID.get(expense.created_by)?.avatar_updated_at}
               size={16}
             />
-            <span>{nameByUserID.get(r.edited_by) ?? "?"} · {dateTimeFmt.format(new Date(r.edited_at))}</span>
+            <span>{nameByUserID.get(expense.created_by) ?? "?"} · {dateTimeFmt.format(new Date(expense.created_at))}</span>
           </span>
         </li>
-      ))}
-    </ul>
-  </section>
+        {revisions.map((r) => (
+          <li class="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
+            <span>
+              <span class="font-medium">{fieldLabel[r.field] ?? r.field}</span>
+              {": "}
+              <span class="text-neutral-600 line-through dark:text-neutral-400">{renderValue(r.field, r.old_value)}</span>
+              {" → "}
+              <span>{renderValue(r.field, r.new_value)}</span>
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+              <Avatar
+                userId={r.edited_by}
+                displayName={nameByUserID.get(r.edited_by) ?? "?"}
+                hasAvatar={memberByID.get(r.edited_by)?.has_avatar}
+                avatarUpdatedAt={memberByID.get(r.edited_by)?.avatar_updated_at}
+                size={16}
+              />
+              <span>{nameByUserID.get(r.edited_by) ?? "?"} · {dateTimeFmt.format(new Date(r.edited_at))}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
 
   {canDelete && (
     <section class="rounded-md border border-red-200 bg-white p-4 dark:border-red-900 dark:bg-neutral-900">
@@ -350,12 +357,21 @@ const fieldLabel: Record<string, string> = {
       <form
         method="POST"
         action={`/api/expenses/delete?id=${eid}&group=${id}`}
-        onsubmit="return confirm('Delete this expense?');"
       >
-        <button type="submit" class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+        <button
+          type="button"
+          data-confirm-open="confirm-delete-expense"
+          class="rounded-md border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+        >
           Delete expense
         </button>
       </form>
+      <ConfirmDialog
+        id="confirm-delete-expense"
+        title="Delete this expense?"
+        message="It will stop affecting balances, but the edit history is kept. This cannot be undone from the UI."
+        confirmLabel="Delete expense"
+      />
     </section>
   )}
 </Base>
