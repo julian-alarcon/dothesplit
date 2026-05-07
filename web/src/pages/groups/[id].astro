@@ -180,9 +180,8 @@ const todayISO = new Date().toISOString().slice(0, 10);
     <h2 class="mb-3 font-medium">Add expense</h2>
     <form method="POST" action={`/api/expenses?id=${id}`} class="flex flex-col gap-4">
       <div class="flex items-stretch gap-2">
-        <details class="group relative flex" data-category-picker>
+        <details class="group field-category-picker" data-category-picker>
           <summary
-            class="field-category-trigger"
             aria-label="Choose category"
             title="Choose category"
             data-category-emoji

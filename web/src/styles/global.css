@@ -167,18 +167,29 @@ body {
   }
 }
 
-/* Category emoji trigger. Matches .field-select visually (full rounded border,
-   panel-matching bg) so the description row reads as one bracketed pair.
-   aspect-square keeps width == height regardless of how tall the sibling
-   .field wrapper grows (the floating-label padding makes it taller than
-   a plain input). */
-.field-category-trigger {
-  @apply flex aspect-square h-full cursor-pointer list-none items-center justify-center rounded-md border border-neutral-300 bg-white text-xl leading-none hover:bg-neutral-50;
+/* Category emoji picker. The visual chrome (border, background, fixed
+   width) lives on the <details> wrapper, not the <summary>, because
+   <summary> is a UA disclosure widget with browser-specific quirks around
+   height/flex that bite us in Chrome.
+
+   Layout: the row uses `flex items-stretch`, so the wrapper gets stretched
+   to the .field wrapper's height. We use a fixed width (w-12 = 3rem = 48px)
+   instead of `aspect-square` because Chrome's flex layout computes auto
+   widths before resolving the stretched height, so an aspect-ratio-based
+   width collapses to the emoji's intrinsic size. */
+.field-category-picker {
+  @apply relative flex w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white text-xl leading-none hover:bg-neutral-50;
 }
 @media (prefers-color-scheme: dark) {
-  .field-category-trigger {
+  .field-category-picker {
     @apply border-neutral-700 bg-neutral-950 hover:bg-neutral-900;
   }
+}
+.field-category-picker > summary {
+  @apply flex h-full w-full cursor-pointer list-none items-center justify-center;
+}
+.field-category-picker > summary::-webkit-details-marker {
+  display: none;
 }
 
 /* Currency-aware text input: typed value sits flush right, with the live
