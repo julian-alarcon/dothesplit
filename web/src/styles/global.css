@@ -2,6 +2,10 @@
 
 :root {
   color-scheme: light dark;
+  /* neutral-500 stays >= 4.5:1 against both white and near-black bodies,
+     comfortably clearing WCAG 1.4.11 (3:1 for non-text UI components). */
+  --field-color: var(--color-neutral-500);
+  --field-focus: var(--color-neutral-900);
 }
 
 html,
@@ -14,7 +18,212 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
+  :root {
+    --field-focus: var(--color-neutral-100);
+  }
   body {
     @apply bg-neutral-950 text-neutral-100;
   }
+}
+
+/* Bottom-line field: just the bottom edge.
+   Render as a <label> so clicking the floating caption focuses the input
+   without needing matching id/for pairs. The inner control carries
+   .field-input and stays transparent against the wrapper's panel-matching
+   background.
+
+   Layout-stable focus indicator: the bottom edge stays 2px regardless of
+   state (resting and focus both 2px); only the colour shifts from
+   neutral-500 to the page's foreground tone, which combined with the
+   floating label morph clears WCAG 2.4.11. The wrapper's padding-top
+   reserves space for the floating label so the field never reflows
+   when the label moves. */
+.field {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  padding-top: 0.875rem;
+  border-bottom: 2px solid var(--field-color);
+  background: var(--color-white);
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  transition: border-color 120ms ease;
+}
+@media (prefers-color-scheme: dark) {
+  .field {
+    background: var(--color-neutral-950);
+  }
+}
+.field:focus-within {
+  border-bottom-color: var(--field-focus);
+}
+
+.field-input {
+  @apply w-full bg-transparent px-3 py-2 text-sm;
+  border: 0;
+  outline: none;
+  color: inherit;
+}
+
+/* Floating label. Sits in the input row at rest; shrinks and lifts into
+   the wrapper's reserved top padding when the field is focused or filled. */
+.field-label {
+  position: absolute;
+  left: 0.75rem;
+  top: 1.4rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--color-neutral-600);
+  pointer-events: none;
+  transform-origin: 0 0;
+  transition: transform 150ms ease, color 150ms ease;
+}
+@media (prefers-color-scheme: dark) {
+  .field-label {
+    color: var(--color-neutral-300);
+  }
+}
+.field:focus-within .field-label,
+.field .field-input:not(:placeholder-shown) ~ .field-label {
+  transform: translateY(-1.15rem) scale(0.8);
+  color: var(--field-focus);
+}
+
+/* Required asterisk, opt-in via data-required so we don't sprinkle * on
+   non-required fields. Red-600 keeps it perceivable for tritan/protan. */
+.field-label[data-required]::after {
+  content: " *";
+  color: var(--color-red-600);
+}
+
+/* Hide the placeholder visually - we use placeholder=" " purely as a
+   :placeholder-shown signal so the label can detect "empty". */
+.field-input::placeholder {
+  color: transparent;
+}
+
+/* Strip browser-native number spinners on every numeric field-input. */
+.field-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.field-input[type="number"]::-webkit-inner-spin-button,
+.field-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Compact inline numeric input. Same bottom-line treatment as .field-input
+   but without the wrapper or floating label - used for small quantity
+   entry next to an external sibling label (split editor rows, default-split
+   percentages, etc.). Panel-matching background (white/neutral-950) so it
+   reads as a real input field, not a transparent gap. Bottom border becomes
+   the page's foreground tone on focus, mirroring .field's focus indicator. */
+.field-input-num {
+  background: var(--color-white);
+  border: 0;
+  border-bottom: 2px solid var(--field-color);
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  color: inherit;
+  outline: none;
+  transition: border-color 120ms ease;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+@media (prefers-color-scheme: dark) {
+  .field-input-num {
+    background: var(--color-neutral-950);
+  }
+}
+.field-input-num:focus {
+  border-bottom-color: var(--field-focus);
+}
+.field-input-num:disabled {
+  opacity: 0.5;
+}
+.field-input-num::-webkit-inner-spin-button,
+.field-input-num::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Bordered <select> matching the "Repeat" dropdown style: full rounded
+   border, panel-matching background, no floating label.
+   Use with a sibling text label rendered inline via <label class="field-select-row">. */
+.field-select-row {
+  @apply flex flex-col gap-1 text-sm;
+}
+.field-select {
+  @apply rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm;
+}
+@media (prefers-color-scheme: dark) {
+  .field-select {
+    @apply border-neutral-700 bg-neutral-950;
+  }
+}
+
+/* Category emoji trigger. Matches .field-select visually (full rounded border,
+   panel-matching bg) so the description row reads as one bracketed pair. */
+.field-category-trigger {
+  @apply flex h-full cursor-pointer list-none items-center justify-center rounded-md border border-neutral-300 bg-white px-3 text-xl leading-none hover:bg-neutral-50;
+}
+@media (prefers-color-scheme: dark) {
+  .field-category-trigger {
+    @apply border-neutral-700 bg-neutral-950 hover:bg-neutral-900;
+  }
+}
+
+/* Currency-aware text input: typed value sits flush right, with the live
+   formatted preview taking over on blur (handled by web/src/scripts/currency-input.ts). */
+.field-input-currency {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Button utilities. Five visual variants + one size modifier, replacing
+   ~25 hand-rolled class strings that had drifted in padding, focus rings,
+   and dark-mode hover. Layout-only classes (self-end, mt-*, flex-1, etc.)
+   stay on the element; the variant carries colour, border, focus, hover,
+   and disabled state. */
+
+/* Shared base: applied via @apply inside each variant so consumers only
+   need one class. Keeps focus-visible ring consistent everywhere. */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-danger-outline {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-neutral-500;
+}
+
+.btn-primary {
+  @apply border border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-700 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300;
+}
+
+.btn-secondary {
+  @apply border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800;
+}
+
+.btn-danger {
+  @apply border border-red-600 bg-red-600 text-white hover:bg-red-700;
+}
+
+.btn-danger-outline {
+  @apply border border-red-600 bg-white text-red-600 hover:bg-red-50 dark:border-red-500 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-950;
+}
+
+/* Compact size modifier — pairs with any of the four colour variants. */
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+/* Square icon-only button (36x36). Self-contained variant; doesn't combine
+   with the colour ones since the calendar prev/next + compact trigger all
+   want the same secondary-like surface. */
+.btn-icon {
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500;
 }

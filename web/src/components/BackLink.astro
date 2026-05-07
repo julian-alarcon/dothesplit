@@ -1,0 +1,18 @@
+---
+// Secondary "back" navigation. Rendered as a pill-shaped link styled like
+// a ghost button - clearly tappable (44px hit target), visually subordinate
+// to the page title. Shared across detail / settings / settle / recurring
+// pages so the affordance stays consistent.
+
+interface Props {
+  href: string;
+  label: string;
+}
+
+const { href, label } = Astro.props as Props;
+---
+
+<a href={href} class="btn-secondary btn-sm self-start">
+  <span aria-hidden="true">←</span>
+  <span>Back to {label}</span>
+</a>
