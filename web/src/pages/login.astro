@@ -15,7 +15,7 @@ const showError = Astro.url.searchParams.get("error") === "1";
         Invalid email or password.
       </p>
     )}
-    <form method="POST" action="/api/login" class="flex flex-col gap-3">
+    <form method="POST" action="/api/login" class="flex flex-col gap-3 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <label class="field">
         <input type="email" name="email" required placeholder=" " class="field-input" />
         <span class="field-label" data-required>Email</span>
