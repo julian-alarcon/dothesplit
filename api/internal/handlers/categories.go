@@ -20,7 +20,6 @@ func (s *Server) ListCategories(c *gin.Context) {
 			Id:         cat.ID,
 			Slug:       cat.Slug,
 			Label:      cat.Label,
-			Emoji:      cat.Emoji,
 			GroupLabel: cat.GroupLabel,
 		})
 	}

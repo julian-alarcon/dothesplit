@@ -942,12 +942,11 @@ components:
 
     Category:
       type: object
-      required: [id, slug, label, emoji, group_label]
+      required: [id, slug, label, group_label]
       properties:
         id:    { type: string, format: uuid }
-        slug:  { type: string, description: "Stable machine identifier (e.g. `groceries`)." }
+        slug:  { type: string, description: "Stable machine identifier (e.g. `groceries`). The frontend maps this to an icon." }
         label: { type: string, description: "Human-readable name." }
-        emoji: { type: string, description: "Single emoji used as visual summary." }
         group_label: { type: string, description: "Section header for the picker (e.g. `Entertainment`, `No category`)." }
 
     ExpenseRevision:
