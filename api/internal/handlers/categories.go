@@ -17,10 +17,11 @@ func (s *Server) ListCategories(c *gin.Context) {
 	out := make([]apigen.Category, 0, len(list))
 	for _, cat := range list {
 		out = append(out, apigen.Category{
-			Id:    cat.ID,
-			Slug:  cat.Slug,
-			Label: cat.Label,
-			Emoji: cat.Emoji,
+			Id:         cat.ID,
+			Slug:       cat.Slug,
+			Label:      cat.Label,
+			Emoji:      cat.Emoji,
+			GroupLabel: cat.GroupLabel,
 		})
 	}
 	c.JSON(http.StatusOK, out)

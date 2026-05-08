@@ -640,6 +640,8 @@ export interface components {
             label: string;
             /** @description Single emoji used as visual summary. */
             emoji: string;
+            /** @description Section header for the picker (e.g. `Entertainment`, `No category`). */
+            group_label: string;
         };
         ExpenseRevision: {
             /** Format: uuid */

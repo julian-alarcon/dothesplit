@@ -10,11 +10,12 @@ import (
 )
 
 type Category struct {
-	ID    uuid.UUID
-	Slug  string
-	Label string
-	Emoji string
-	Sort  int
+	ID         uuid.UUID
+	Slug       string
+	Label      string
+	Emoji      string
+	Sort       int
+	GroupLabel string
 }
 
 type CategoryRepo struct {
@@ -26,7 +27,7 @@ func NewCategoryRepo(p *pgxpool.Pool) *CategoryRepo { return &CategoryRepo{pool:
 // List returns every category in presentation order.
 func (r *CategoryRepo) List(ctx context.Context) ([]Category, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, slug, label, emoji, sort FROM categories ORDER BY sort, label
+		SELECT id, slug, label, emoji, sort, group_label FROM categories ORDER BY sort, label
 	`)
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func (r *CategoryRepo) List(ctx context.Context) ([]Category, error) {
 	var out []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort); err != nil {
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort, &c.GroupLabel); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -46,8 +47,8 @@ func (r *CategoryRepo) List(ctx context.Context) ([]Category, error) {
 func (r *CategoryRepo) FindByID(ctx context.Context, id uuid.UUID) (*Category, error) {
 	var c Category
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, slug, label, emoji, sort FROM categories WHERE id = $1
-	`, id).Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort)
+		SELECT id, slug, label, emoji, sort, group_label FROM categories WHERE id = $1
+	`, id).Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort, &c.GroupLabel)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -60,8 +61,8 @@ func (r *CategoryRepo) FindByID(ctx context.Context, id uuid.UUID) (*Category, e
 func (r *CategoryRepo) FindBySlug(ctx context.Context, slug string) (*Category, error) {
 	var c Category
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, slug, label, emoji, sort FROM categories WHERE slug = $1
-	`, slug).Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort)
+		SELECT id, slug, label, emoji, sort, group_label FROM categories WHERE slug = $1
+	`, slug).Scan(&c.ID, &c.Slug, &c.Label, &c.Emoji, &c.Sort, &c.GroupLabel)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

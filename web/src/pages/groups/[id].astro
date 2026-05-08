@@ -55,7 +55,7 @@ for (const e of expenses) {
 const categoryByID = new Map(categories.map((c) => [c.id, c]));
 const otherCategory = categories.find((c) => c.slug === "other");
 const defaultCategoryID = otherCategory?.id ?? categories[0]?.id ?? "";
-const defaultEmoji = otherCategory?.emoji ?? "📌";
+const defaultEmoji = otherCategory?.emoji ?? categories[0]?.emoji ?? "📌";
 const currency = group.default_currency;
 
 const nameByUserID = new Map<string, string>();
@@ -179,41 +179,63 @@ const todayISO = new Date().toISOString().slice(0, 10);
   <section class="mb-2 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
     <h2 class="mb-3 font-medium">Add expense</h2>
     <form method="POST" action={`/api/expenses?id=${id}`} class="flex flex-col gap-4">
-      <div class="flex items-stretch gap-2">
-        <details class="group field-category-picker" data-category-picker>
-          <summary
-            aria-label="Choose category"
-            title="Choose category"
-            data-category-emoji
-          >
-            {defaultEmoji}
-          </summary>
-          <div class="absolute left-0 top-full z-10 mt-1 w-56 rounded-md border border-neutral-300 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-950">
-            <ul class="flex max-h-64 flex-col gap-0.5 overflow-auto">
-              {categories.map((c) => (
-                <li>
-                  <label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900">
-                    <input
-                      type="radio"
-                      name="category_id"
-                      value={c.id}
-                      data-category-option
-                      data-emoji={c.emoji}
-                      checked={c.id === defaultCategoryID}
-                      class="accent-neutral-900 dark:accent-neutral-100"
-                    />
-                    <span class="text-lg leading-none">{c.emoji}</span>
-                    <span>{c.label}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
+      <div class="flex items-stretch gap-2" data-category-picker>
+        <input type="hidden" name="category_id" value={defaultCategoryID} />
+        <button
+          type="button"
+          data-category-open
+          aria-label="Choose category"
+          title="Choose category"
+          class="field-category-trigger"
+        >
+          <span data-category-emoji>{defaultEmoji}</span>
+        </button>
         <label class="field flex-1">
           <input name="description" required maxlength="200" placeholder=" " class="field-input" />
           <span class="field-label" data-required>What was it?</span>
         </label>
+        <dialog
+          data-category-dialog
+          aria-modal="true"
+          aria-labelledby="category-dialog-title"
+          class="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-sm rounded-md border border-neutral-200 bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+        >
+          <div class="flex flex-col gap-3 p-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 id="category-dialog-title" class="text-lg font-medium">Choose category</h3>
+              <button
+                type="button"
+                data-category-cancel
+                aria-label="Close"
+                title="Close"
+                class="rounded-md px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
+              >
+                ✕
+              </button>
+            </div>
+            <ul class="flex max-h-[60vh] flex-col gap-0.5 overflow-auto">
+              {categories.map((c, i) => (
+                <>
+                  {(i === 0 || categories[i - 1].group_label !== c.group_label) && (
+                    <li class="field-category-group" role="presentation">{c.group_label}</li>
+                  )}
+                  <li>
+                    <button
+                      type="button"
+                      data-category-option
+                      data-category-id={c.id}
+                      data-emoji={c.emoji}
+                      class="field-category-option"
+                    >
+                      <span class="text-lg leading-none">{c.emoji}</span>
+                      <span>{c.label}</span>
+                    </button>
+                  </li>
+                </>
+              ))}
+            </ul>
+          </div>
+        </dialog>
       </div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <label class="field">

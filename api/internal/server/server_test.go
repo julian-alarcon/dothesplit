@@ -417,17 +417,17 @@ func TestGoldenPath(t *testing.T) {
 	resp, catsList := requestList(t, "GET", base+"/v1/categories", nil, cookieA)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.NotEmpty(t, catsList)
-	var groceriesID, travelID string
+	var groceriesID, trainID string
 	for _, c := range catsList {
 		switch c["slug"] {
 		case "groceries":
 			groceriesID = c["id"].(string)
-		case "travel":
-			travelID = c["id"].(string)
+		case "train":
+			trainID = c["id"].(string)
 		}
 	}
 	require.NotEmpty(t, groceriesID)
-	require.NotEmpty(t, travelID)
+	require.NotEmpty(t, trainID)
 
 	// Expense created without a category → defaults to "other".
 	resp, exp := request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
@@ -445,12 +445,12 @@ func TestGoldenPath(t *testing.T) {
 	resp, upd := request(t, "PATCH", base+"/v1/expenses/"+busID, map[string]any{
 		"description":  "Train",
 		"amount_cents": 2000,
-		"category_id":  travelID,
+		"category_id":  trainID,
 	}, cookieA)
 	require.Equal(t, http.StatusOK, resp.StatusCode, upd)
 	require.Equal(t, "Train", upd["description"])
 	require.EqualValues(t, 2000, upd["amount_cents"])
-	require.Equal(t, travelID, upd["category_id"])
+	require.Equal(t, trainID, upd["category_id"])
 	for _, s := range upd["splits"].([]any) {
 		require.EqualValues(t, 1000, s.(map[string]any)["share_cents"])
 	}

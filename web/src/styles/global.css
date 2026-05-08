@@ -167,36 +167,50 @@ body {
   }
 }
 
-/* Category emoji picker. The visual chrome (border, background, fixed
-   width) lives on the <details> wrapper, not the <summary>, because
-   <summary> is a UA disclosure widget with browser-specific quirks around
-   height/flex that bite us in Chrome.
-
-   Layout: the row uses `flex items-stretch`, so the wrapper gets stretched
-   to the .field wrapper's height. We use a fixed width (w-12 = 3rem = 48px)
-   instead of `aspect-square` because Chrome's flex layout computes auto
-   widths before resolving the stretched height, so an aspect-ratio-based
-   width collapses to the emoji's intrinsic size. */
-.field-category-picker {
-  @apply relative flex w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white text-xl leading-none hover:bg-neutral-50;
-}
-@media (prefers-color-scheme: dark) {
-  .field-category-picker {
-    @apply border-neutral-700 bg-neutral-950 hover:bg-neutral-900;
-  }
-}
-.field-category-picker > summary {
-  @apply flex h-full w-full cursor-pointer list-none items-center justify-center;
-}
-.field-category-picker > summary::-webkit-details-marker {
-  display: none;
-}
-
 /* Currency-aware text input: typed value sits flush right, with the live
    formatted preview taking over on blur (handled by web/src/scripts/currency-input.ts). */
 .field-input-currency {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* Square category trigger button. Sits next to the description .field on the
+   add/edit-expense forms; opens the picker dialog. Fixed width (w-12 = 48px)
+   instead of `aspect-square` because Chrome's flex layout computes auto
+   widths before resolving stretched height, so an aspect-ratio-based width
+   collapses to the emoji's intrinsic size. */
+.field-category-trigger {
+  @apply flex w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white text-xl leading-none transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:focus-visible:ring-neutral-500;
+}
+
+/* Single row inside the category dialog list. Reads as a tappable list item:
+   emoji + label, full-width hit target, hover/focus tint. */
+.field-category-option {
+  @apply flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-none dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800;
+}
+
+/* Section header inside the category list. Sticky against the scrolling
+   <ul> (its nearest scrollable ancestor), so the user always knows which
+   group they're scanning. Solid background covers options sliding under it. */
+.field-category-group {
+  position: sticky;
+  top: 0;
+  background: var(--color-white);
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-neutral-500);
+}
+@media (prefers-color-scheme: dark) {
+  .field-category-group {
+    background: var(--color-neutral-900);
+    color: var(--color-neutral-400);
+  }
+}
+.field-category-group:not(:first-child) {
+  margin-top: 0.25rem;
 }
 
 /* Button utilities. Five visual variants + one size modifier, replacing
