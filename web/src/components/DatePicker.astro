@@ -1,8 +1,6 @@
 ---
 import CalendarIcon from "@/components/icons/CalendarIcon.astro";
-import ChevronLeftIcon from "@/components/icons/ChevronLeftIcon.astro";
-import ChevronRightIcon from "@/components/icons/ChevronRightIcon.astro";
-import RecurringIcon from "@/components/icons/RecurringIcon.astro";
+import FaIcon from "@/components/FaIcon.astro";
 
 // Shared date-picker UI. The trigger is a calendar icon-button with the
 // currently-selected day rendered inside it; clicking opens a <dialog> with
@@ -132,10 +130,10 @@ const focusRing =
         <h4 class="text-sm font-medium" data-cal-title>-</h4>
         <div class="flex items-center gap-2">
           <button type="button" data-cal-prev aria-label="Previous month" title="Previous month" class="btn-icon">
-            <ChevronLeftIcon />
+            <FaIcon name="chevron-left" />
           </button>
           <button type="button" data-cal-next aria-label="Next month" title="Next month" class="btn-icon">
-            <ChevronRightIcon />
+            <FaIcon name="chevron-right" />
           </button>
         </div>
       </div>
@@ -149,7 +147,7 @@ const focusRing =
           {showCadence && (
             <label class="ml-auto flex items-center gap-1.5 text-sm">
               <span class="flex items-center gap-1 text-neutral-500">
-                <RecurringIcon />
+                <FaIcon name="arrows-rotate" />
                 <span>Repeat</span>
               </span>
               <select

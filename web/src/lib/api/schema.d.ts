@@ -634,12 +634,10 @@ export interface components {
         Category: {
             /** Format: uuid */
             id: string;
-            /** @description Stable machine identifier (e.g. `groceries`). */
+            /** @description Stable machine identifier (e.g. `groceries`). The frontend maps this to an icon. */
             slug: string;
             /** @description Human-readable name. */
             label: string;
-            /** @description Single emoji used as visual summary. */
-            emoji: string;
             /** @description Section header for the picker (e.g. `Entertainment`, `No category`). */
             group_label: string;
         };

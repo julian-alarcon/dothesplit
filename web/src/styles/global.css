@@ -6,6 +6,18 @@
      comfortably clearing WCAG 1.4.11 (3:1 for non-text UI components). */
   --field-color: var(--color-neutral-500);
   --field-focus: var(--color-neutral-900);
+
+  /* Per-category-group icon tints. OKLCH gives perceptually-uniform
+     brightness across hues so no group looks louder than another. The
+     dark-mode variants below lift lightness ~15% to clear contrast on
+     the bg-neutral-900 panels icons render against. */
+  --cat-entertainment: oklch(60% 0.18 295);
+  --cat-food-drink:    oklch(62% 0.15 30);
+  --cat-home:          oklch(55% 0.12 145);
+  --cat-life:          oklch(60% 0.14 220);
+  --cat-transport:     oklch(60% 0.14 60);
+  --cat-utilities:     oklch(60% 0.10 250);
+  --cat-no-category:   oklch(55% 0 0);
 }
 
 html,
@@ -20,11 +32,29 @@ body {
 @media (prefers-color-scheme: dark) {
   :root {
     --field-focus: var(--color-neutral-100);
+    --cat-entertainment: oklch(75% 0.16 295);
+    --cat-food-drink:    oklch(75% 0.13 30);
+    --cat-home:          oklch(72% 0.12 145);
+    --cat-life:          oklch(75% 0.13 220);
+    --cat-transport:     oklch(75% 0.13 60);
+    --cat-utilities:     oklch(72% 0.10 250);
+    --cat-no-category:   oklch(70% 0 0);
   }
   body {
     @apply bg-neutral-950 text-neutral-100;
   }
 }
+
+/* Category-group color classes. CategoryIcon.astro slugifies the
+   group_label and applies the matching class; the SVG inherits color
+   via currentColor. */
+.cat-group-entertainment { color: var(--cat-entertainment); }
+.cat-group-food-drink    { color: var(--cat-food-drink); }
+.cat-group-home          { color: var(--cat-home); }
+.cat-group-life          { color: var(--cat-life); }
+.cat-group-transport     { color: var(--cat-transport); }
+.cat-group-utilities     { color: var(--cat-utilities); }
+.cat-group-no-category   { color: var(--cat-no-category); }
 
 /* Bottom-line field: just the bottom edge.
    Render as a <label> so clicking the floating caption focuses the input
@@ -180,7 +210,7 @@ body {
    widths before resolving stretched height, so an aspect-ratio-based width
    collapses to the emoji's intrinsic size. */
 .field-category-trigger {
-  @apply flex w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white text-xl leading-none transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:focus-visible:ring-neutral-500;
+  @apply flex h-[50px] w-[50px] shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white leading-none transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:focus-visible:ring-neutral-500;
 }
 
 /* Single row inside the category dialog list. Reads as a tappable list item:

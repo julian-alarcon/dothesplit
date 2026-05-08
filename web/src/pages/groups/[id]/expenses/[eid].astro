@@ -5,6 +5,7 @@ import BackLink from "@/components/BackLink.astro";
 import SplitEditor from "@/components/SplitEditor.astro";
 import DatePicker from "@/components/DatePicker.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
+import CategoryIcon from "@/components/CategoryIcon.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id, eid } = Astro.params as { id: string; eid: string };
@@ -121,7 +122,13 @@ const fieldLabel: Record<string, string> = {
   </div>
 
   <div class="mb-6 flex items-center gap-3">
-    <span class="text-3xl leading-none">{currentCategory?.emoji ?? "📌"}</span>
+    <span class="inline-flex items-center justify-center">
+      <CategoryIcon
+        slug={currentCategory?.slug}
+        groupLabel={currentCategory?.group_label}
+        size={40}
+      />
+    </span>
     <div>
       <div class="flex flex-wrap items-center gap-2">
         <h1 class="text-2xl font-semibold">{expense.description}</h1>
@@ -168,7 +175,7 @@ const fieldLabel: Record<string, string> = {
         class="flex flex-col gap-4"
         data-dirty-form
       >
-        <div class="flex items-stretch gap-2" data-category-picker>
+        <div class="flex items-end gap-2" data-category-picker>
           <input type="hidden" name="category_id" value={expense.category_id} />
           <button
             type="button"
@@ -177,7 +184,13 @@ const fieldLabel: Record<string, string> = {
             title="Choose category"
             class="field-category-trigger"
           >
-            <span data-category-emoji>{currentCategory?.emoji ?? "📌"}</span>
+            <span data-category-icon class="inline-flex items-center justify-center">
+              <CategoryIcon
+                slug={currentCategory?.slug}
+                groupLabel={currentCategory?.group_label}
+                size={38}
+              />
+            </span>
           </button>
           <label class="field flex-1">
             <input
@@ -219,11 +232,12 @@ const fieldLabel: Record<string, string> = {
                       <button
                         type="button"
                         data-category-option
-                        data-category-id={c.id}
-                        data-emoji={c.emoji}
+                        data-category-id={c.id} 
+                        data-slug={c.slug}
+                        data-group-label={c.group_label}
                         class="field-category-option"
                       >
-                        <span class="text-lg leading-none">{c.emoji}</span>
+                        <CategoryIcon slug={c.slug} groupLabel={c.group_label} size={28} />
                         <span>{c.label}</span>
                       </button>
                     </li>

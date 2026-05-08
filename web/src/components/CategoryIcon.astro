@@ -1,0 +1,30 @@
+---
+import { Icon } from "astro-icon/components";
+import { iconForSlug } from "@/lib/category-icons";
+
+interface Props {
+  slug: string | undefined | null;
+  groupLabel?: string;
+  size?: number;
+  class?: string;
+}
+
+const { slug, groupLabel, size = 20, class: extra = "" } = Astro.props;
+
+// Slugify the group label so it matches the .cat-group-* classes in
+// global.css (e.g. "Food & drink" -> "food-drink").
+const groupClass = groupLabel
+  ? `cat-group-${groupLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`
+  : "";
+
+const name = iconForSlug(slug);
+---
+
+<Icon
+  name={`fa7-solid:${name}`}
+  width={size}
+  height={size}
+  class={`${groupClass} ${extra}`.trim()}
+  data-icon-slug={slug}
+  is:inline
+/>

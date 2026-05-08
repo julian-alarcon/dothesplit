@@ -1,0 +1,29 @@
+---
+// Thin wrapper over astro-icon's <Icon> for Font Awesome Solid glyphs used as
+// chrome (gear, chevrons, repeat refresh, etc). Renders inline SVG via
+// is:inline so each occurrence carries its own <path> and doesn't depend on
+// astro-icon's runtime sprite collection (which dropped some symbols when
+// the same icon appeared on multiple components in one render tree).
+//
+// Decorative-by-default: aria-hidden="true". Pass an aria-label and unset
+// aria-hidden if you ever use one without an adjacent text label.
+
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  name: string;
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 16, class: extra = "" } = Astro.props;
+---
+
+<Icon
+  name={`fa7-solid:${name}`}
+  width={size}
+  height={size}
+  class={extra}
+  aria-hidden="true"
+  is:inline
+/>
