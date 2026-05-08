@@ -6,18 +6,18 @@
 export const ICON_BY_SLUG: Record<string, string> = {
   // Entertainment
   books: "book",
-  concerts: "microphone",
+  concerts: "guitar",
   games: "gamepad",
   hobbies: "palette",
   movies: "film",
   music: "music",
-  sports: "futbol",
+  sports: "person-running",
   theater: "masks-theater",
 
   // Food & drink
   snacks: "cookie-bite",
   dining_out: "utensils",
-  liquor: "wine-glass",
+  liquor: "champagne-glasses",
 
   // Home
   groceries: "cart-shopping",
@@ -34,40 +34,42 @@ export const ICON_BY_SLUG: Record<string, string> = {
   // Life
   childcare: "baby",
   clothing: "shirt",
+  gym: "dumbbell",
   education: "graduation-cap",
   gifts: "gift",
   insurance: "shield-halved",
   medical: "briefcase-medical",
-  taxes: "receipt",
+  taxes: "file-invoice-dollar",
   loan: "hand-holding-dollar",
   hotel: "hotel",
   legal: "scale-balanced",
-  real_estate: "building",
+  real_estate: "building-flag",
 
   // Transport
   bicycle: "bicycle",
-  bus: "bus",
-  car: "car",
+  bus: "bus-side",
+  car: "car-side",
   fuel: "gas-pump",
   parking: "square-parking",
   plane: "plane",
   taxi: "taxi",
   train: "train",
+  special: "cable-car",
 
   // Utilities
   electricity: "bolt",
   heating_gas: "fire",
   internet: "wifi",
-  phone: "phone",
-  trash: "trash",
+  phone: "mobile-screen",
+  trash: "dumpster",
   tv: "tv",
   water: "droplet",
 
   // No category
-  other: "thumbtack",
+  other: "meteor",
 };
 
-export const FALLBACK_ICON = "thumbtack";
+export const FALLBACK_ICON = "meteor";
 
 export function iconForSlug(slug: string | undefined | null): string {
   return (slug && ICON_BY_SLUG[slug]) || FALLBACK_ICON;

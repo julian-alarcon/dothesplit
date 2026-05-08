@@ -17,7 +17,7 @@
   --cat-life:          oklch(60% 0.14 220);
   --cat-transport:     oklch(60% 0.14 60);
   --cat-utilities:     oklch(60% 0.10 250);
-  --cat-no-category:   oklch(55% 0 0);
+  --cat-no-category:   oklch(65% 0 0);
 }
 
 html,
@@ -38,11 +38,22 @@ body {
     --cat-life:          oklch(75% 0.13 220);
     --cat-transport:     oklch(75% 0.13 60);
     --cat-utilities:     oklch(72% 0.10 250);
-    --cat-no-category:   oklch(70% 0 0);
+    --cat-no-category:   oklch(95% 0 0);
   }
   body {
     @apply bg-neutral-950 text-neutral-100;
   }
+}
+
+/* Per-slug rotation override for CategoryIcon's <svg>. The `other` slug
+   reuses FA's `meteor` glyph rotated 270° so it points down-left like the
+   thumbtack it replaced. transform-box: fill-box anchors the rotation to
+   the SVG's content box rather than the viewBox corner — without it FA's
+   asymmetric 640×640 viewBox makes the rotated glyph drift off-center. */
+svg[data-icon-slug="other"] {
+  transform: rotate(270deg);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 /* Category-group color classes. CategoryIcon.astro slugifies the
