@@ -42,7 +42,7 @@ Currently shipped and usable:
 
 - **Accounts**: register, log in, log out, change display name, change password (old password required), upload an **8×8 pixel avatar** (generated in-browser from any image; falls back to initials), soft-delete your account with a stable tombstone so shared history stays traceable.
 - **Groups**: create, rename, set a per-group default currency (defaults to EUR), invite existing members by email, delete (creator only; cascades). Settings live on a dedicated `/groups/{id}/settings` page. For 2-member groups, pin a **default percentage split** (e.g. 60/40) that prefills new expenses; auto-cleared when a 3rd member joins.
-- **Expenses**: create with three split modes via a shared in-app editor — **equal**, **exact** (per-member cents), and **percent** — with live remainder validation and a 2-member "you owe X" framing. Categorize with one of ten seeded categories. Any group member can edit description / amount / category / payer / splits after the fact; splits either rescale proportionally on amount-only edits or are re-resolved when a new mode/split is supplied. Soft-delete (payer or group creator). Inspect the full edit history with who / when / field / old → new, including per-member split diffs.
+- **Expenses**: create with three split modes via a shared in-app editor, **equal**, **exact** (per-member cents), and **percent**,  with live remainder validation and a 2-member "you owe X" framing. Categorize with one of ten seeded categories. Any group member can edit description / amount / category / payer / splits after the fact; splits either rescale proportionally on amount-only edits or are re-resolved when a new mode/split is supplied. Soft-delete (payer or group creator). Inspect the full edit history with who / when / field / old → new, including per-member split diffs.
 - **Balances & settle-up**: net-balance computation over all expenses + settlements, plus a simplified "X owes Y" view. Record settlements directly.
 - **Recurring expenses**: template + background worker that materializes a real expense on each cadence tick (daily / weekly / monthly). Backend API is complete; frontend UI is pending (see Roadmap).
 - **Security**: Argon2id passwords; email stored as HMAC (lookup) + AES-GCM (display) with keys held outside the DB; rate-limited `/v1/auth/*`; strict JSON bodies reject unknown fields; CSP headers with SHA-256 hashes on inline scripts.
@@ -54,14 +54,23 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
+- Bug members (is reset sometimes)
+- Remove category migrations
+- Remove from DB other kind of data
+- Lock scroll on modals?
+- Set static height for custom split
+
+- I just saw that only the Creator of the group can delete expenses, this should be alloowed by everybody in the group.
+- Also I found a critical error, When Someone make a Settle there is no record in the Expenses of the group.
+
 - Add a new temporal recurring each 30 seconds just for test as this will be deleted
-- Truncate description of expenses in expenses list
+
 - Themes
   - Use Inter font (in local to avoid calling thirt party entities)
 - **Settlements UI**: list past settlements per group; today you can only record them.
 - **Pagination** on expense and settlement lists. Load first 50 expenses and a Button at the end to load 25 more expenses.
   - Add a label when there is a new month as part of the list of the expenses page
-- Publishing to gitHub and Github docker registry
+- Publishing to GitHub on releases and Github docker registry
 - Deploy in TrueNAS with custom docker-compose
 
 ### Medium term

@@ -6,6 +6,7 @@ import SplitEditor from "@/components/SplitEditor.astro";
 import DatePicker from "@/components/DatePicker.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import CategoryIcon from "@/components/CategoryIcon.astro";
+import FaIcon from "@/components/FaIcon.astro";
 import { apiFor } from "@/lib/api/client";
 
 const { id, eid } = Astro.params as { id: string; eid: string };
@@ -137,7 +138,8 @@ const fieldLabel: Record<string, string> = {
             class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
             title={`Repeats ${cadenceLabels[expenseCadence] ?? expenseCadence}`}
           >
-            ↻ Repeats {cadenceLabels[expenseCadence] ?? expenseCadence}
+            <FaIcon name="arrows-rotate" size={11} />
+            Repeats {cadenceLabels[expenseCadence] ?? expenseCadence}
           </span>
         )}
       </div>
@@ -219,7 +221,7 @@ const fieldLabel: Record<string, string> = {
                   title="Close"
                   class="rounded-md px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
                 >
-                  ✕
+                  <FaIcon name="xmark" size={14} />
                 </button>
               </div>
               <ul class="flex max-h-[60vh] flex-col gap-0.5 overflow-auto">
@@ -360,7 +362,9 @@ const fieldLabel: Record<string, string> = {
               <span class="font-medium">{fieldLabel[r.field] ?? r.field}</span>
               {": "}
               <span class="text-neutral-600 line-through dark:text-neutral-400">{renderValue(r.field, r.old_value)}</span>
-              {" → "}
+              <span class="mx-1 inline-flex text-neutral-500">
+                <FaIcon name="arrow-right" size={11} />
+              </span>
               <span>{renderValue(r.field, r.new_value)}</span>
             </span>
             <span class="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">

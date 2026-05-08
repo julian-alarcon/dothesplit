@@ -3,6 +3,7 @@
 // a ghost button - clearly tappable (44px hit target), visually subordinate
 // to the page title. Shared across detail / settings / settle / recurring
 // pages so the affordance stays consistent.
+import FaIcon from "@/components/FaIcon.astro";
 
 interface Props {
   href: string;
@@ -13,6 +14,6 @@ const { href, label } = Astro.props as Props;
 ---
 
 <a href={href} class="btn-secondary btn-sm self-start">
-  <span aria-hidden="true">←</span>
+  <FaIcon name="arrow-left-long" />
   <span>Back to {label}</span>
 </a>

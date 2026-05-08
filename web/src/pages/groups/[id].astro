@@ -158,7 +158,9 @@ const todayISO = new Date().toISOString().slice(0, 10);
                       size={18}
                     />
                     <span class="truncate">{nameByUserID.get(d.from_user_id)}</span>
-                    <span class="text-neutral-600 dark:text-neutral-400">→</span>
+                    <span class="text-neutral-600 dark:text-neutral-400">
+                      <FaIcon name="arrow-right" size={12} />
+                    </span>
                     <Avatar
                       userId={d.to_user_id}
                       displayName={to?.display_name ?? "?"}
@@ -214,7 +216,7 @@ const todayISO = new Date().toISOString().slice(0, 10);
                 title="Close"
                 class="rounded-md px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
               >
-                ✕
+                <FaIcon name="xmark" size={14} />
               </button>
             </div>
             <ul class="flex max-h-[60vh] flex-col gap-0.5 overflow-auto">
@@ -315,7 +317,8 @@ const todayISO = new Date().toISOString().slice(0, 10);
                           class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
                           title={`Repeats ${cadenceLabels[cadence] ?? cadence}`}
                         >
-                          ↻ {cadenceLabels[cadence] ?? cadence}
+                          <FaIcon name="arrows-rotate" size={11} />
+                          {cadenceLabels[cadence] ?? cadence}
                         </span>
                       )}
                     </div>

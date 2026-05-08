@@ -77,6 +77,7 @@ Rules of thumb:
 - **Form endpoints post to `/api/*.ts` SSR handlers**, which forward to the Go API with the cookie. Don't call the Go API from client islands if a form-post pattern works — keeps the session on the Astro origin.
 - **Optimistic UI / react-query** is planned for richer islands; static forms are fine for CRUD pages.
 - Astro's `security.checkOrigin` is disabled — we rely on `SameSite=Lax` on the session cookie for CSRF protection (see [astro.config.mjs](web/astro.config.mjs)).
+- **Native form controls**: keep them. We polish the closed/inert state via `.field-*` classes (custom chevron on `.field-select`, panel-matching colors, `color-scheme: light dark` cascade) but never replace `<select>`, `<input type="checkbox|radio|number">` with custom JS widgets. Reasons: accessibility (focus trap, keyboard nav, screen readers, IME), offline reliability, and PWA install size. The Android open dropdown sheet stays Material You — that's a deliberate trade. Exception: `<input type="date">` is replaced by [DatePicker.astro](web/src/components/DatePicker.astro) because the native popup sizes inconsistently and we need a today-overlay glyph.
 
 ## Cookie naming (important)
 

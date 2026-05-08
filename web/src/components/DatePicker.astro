@@ -122,7 +122,7 @@ const focusRing =
           title="Close"
           class:list={["rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800", focusRing]}
         >
-          ✕
+          <FaIcon name="xmark" size={14} />
         </button>
       </div>
 
@@ -152,10 +152,7 @@ const focusRing =
               </span>
               <select
                 data-cadence-select
-                class:list={[
-                  "rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950",
-                  focusRing,
-                ]}
+                class:list={["field-select", focusRing]}
               >
                 <option value="" selected={cadenceValue === ""}>Never</option>
                 <option value="daily" selected={cadenceValue === "daily"}>Daily</option>
