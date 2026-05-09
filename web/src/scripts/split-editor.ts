@@ -356,6 +356,11 @@ function setupEditor(root: HTMLElement) {
         }),
     };
     payloadInput.value = JSON.stringify(payload);
+    // Programmatic value writes don't fire input/change events, so the
+    // dirty-form watcher (web/src/scripts/dirty-form.ts) wouldn't enable the
+    // Save button on edit forms. Dispatch them explicitly.
+    payloadInput.dispatchEvent(new Event("input", { bubbles: true }));
+    payloadInput.dispatchEvent(new Event("change", { bubbles: true }));
     dirty = true;
     renderSummary();
   }
@@ -395,8 +400,10 @@ function setupEditor(root: HTMLElement) {
 
   openBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    initFromInitial();
-    // Sync mode radio with state.
+    // Don't reinitialize state here - it's seeded once at setup below.
+    // Reopening must preserve whatever the user last committed via Done;
+    // calling initFromInitial() again would reset to the original/default split.
+    // Sync mode radio with state in case the DOM drifted from `mode`.
     modeInputs.forEach((i) => (i.checked = i.value === mode));
     render();
     dialog.showModal();
