@@ -337,10 +337,16 @@ function setupPicker(root: HTMLElement) {
     e.preventDefault();
     if (hidden.value !== pending) {
       hidden.value = pending;
+      // Programmatic value writes don't fire input/change automatically.
+      // Dispatch both so any form-level listener (dirty-form, validation,
+      // future react-query mutators) sees the update regardless of which
+      // event it subscribes to. Matches what category-picker / split-editor do.
+      hidden.dispatchEvent(new Event("input", { bubbles: true }));
       hidden.dispatchEvent(new Event("change", { bubbles: true }));
     }
     if (cadenceHidden && cadenceHidden.value !== pendingCadence) {
       cadenceHidden.value = pendingCadence;
+      cadenceHidden.dispatchEvent(new Event("input", { bubbles: true }));
       cadenceHidden.dispatchEvent(new Event("change", { bubbles: true }));
     }
     renderTrigger(hidden.value);

@@ -55,9 +55,13 @@ function setupCurrencyInput({ visible, hidden, currency }: SetupOptions) {
   function setHidden(next: string) {
     if (hidden.value === next) return;
     hidden.value = next;
-    // Other scripts (e.g. SplitEditor) listen to "input" on the canonical
-    // amount field. Dispatch so they recompute when the user types.
+    // Programmatic value writes don't fire input/change automatically.
+    // Dispatch both: SplitEditor listens to "input" to recompute live shares,
+    // dirty-form re-snapshots on either, and any future listener can pick
+    // whichever it prefers. Matches what category-picker / split-editor /
+    // date-picker do after their own commits.
     hidden.dispatchEvent(new Event("input", { bubbles: true }));
+    hidden.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function commit(): number | null {
