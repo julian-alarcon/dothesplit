@@ -221,8 +221,8 @@ func (s *Server) DeleteExpense(c *gin.Context) {
 	case errors.Is(err, repo.ErrNotFound):
 		writeErr(c, http.StatusNotFound, "not_found", "expense not found")
 		return
-	case errors.Is(err, service.ErrForbidden):
-		writeErr(c, http.StatusForbidden, "forbidden", "not permitted")
+	case errors.Is(err, service.ErrNotMember):
+		writeErr(c, http.StatusForbidden, "forbidden", "not a group member")
 		return
 	case err != nil:
 		writeErr(c, http.StatusInternalServerError, "internal", err.Error())

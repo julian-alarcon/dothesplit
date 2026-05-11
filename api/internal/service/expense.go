@@ -230,7 +230,8 @@ func (s *ExpenseService) List(ctx context.Context, actorID, groupID uuid.UUID) (
 	return s.exps.ListByGroup(ctx, groupID)
 }
 
-// Delete is allowed for the payer or the group creator. Soft-deletes.
+// Delete soft-deletes an expense. Any group member may delete; the row is
+// preserved with deleted_at so the audit trail survives.
 func (s *ExpenseService) Delete(ctx context.Context, actorID, expenseID uuid.UUID) error {
 	e, err := s.exps.FindByID(ctx, expenseID)
 	if errors.Is(err, repo.ErrNotFound) {
@@ -242,13 +243,8 @@ func (s *ExpenseService) Delete(ctx context.Context, actorID, expenseID uuid.UUI
 	if e.DeletedAt != nil {
 		return repo.ErrNotFound
 	}
-	// Load group to check creator.
-	g, err := s.groups.FindByID(ctx, e.GroupID)
-	if err != nil {
+	if err := s.requireMember(ctx, e.GroupID, actorID); err != nil {
 		return err
-	}
-	if actorID != e.PayerID && actorID != g.CreatedBy {
-		return ErrForbidden
 	}
 	return s.exps.SoftDelete(ctx, expenseID)
 }

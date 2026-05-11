@@ -599,6 +599,18 @@ func TestGoldenPath(t *testing.T) {
 	// Non-member authenticated user cannot delete
 	resp, _ = request(t, "DELETE", base+"/v1/expenses/"+hotelID, nil, cookieC)
 	require.Equal(t, http.StatusForbidden, resp.StatusCode)
+	// Any group member (here B — neither creator nor payer of this expense) can delete.
+	resp, snack := request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
+		"description":  "Snacks",
+		"amount_cents": 200,
+		"payer_id":     userA["id"],
+		"mode":         "equal",
+		"splits":       []map[string]any{{"user_id": userA["id"]}, {"user_id": userB["id"]}},
+	}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	snackID := snack["id"].(string)
+	resp, _ = request(t, "DELETE", base+"/v1/expenses/"+snackID, nil, cookieB)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 	// Payer can delete; also soft-delete reflected in balances
 	resp, _ = request(t, "DELETE", base+"/v1/expenses/"+hotelID, nil, cookieA)
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)

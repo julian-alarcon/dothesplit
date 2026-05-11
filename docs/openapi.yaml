@@ -437,7 +437,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
     delete:
-      summary: Soft-delete an expense (payer or group creator only)
+      summary: Soft-delete an expense (any group member)
       operationId: deleteExpense
       tags: [expenses]
       parameters:

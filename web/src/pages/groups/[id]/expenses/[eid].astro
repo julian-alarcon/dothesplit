@@ -68,7 +68,7 @@ const expenseCadence = matchedTemplate?.cadence;
 const userID = Astro.locals.user?.id;
 const isMember = group.members.some((m) => m.user_id === userID);
 const canEdit = isMember;
-const canDelete = expense.payer_id === userID || group.created_by === userID;
+const canDelete = isMember;
 
 const nameByUserID = new Map<string, string>();
 const memberByID = new Map(group.members.map((m) => [m.user_id, m]));
