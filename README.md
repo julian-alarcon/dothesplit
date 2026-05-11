@@ -54,13 +54,8 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- I just saw that only the Creator of the group can delete expenses, this should be alloowed by everybody in the group.
-
 - Set static height for custom split
-
-- When creting a group alolow to add members
-- Also I found a critical error, When Someone make a Settle there is no record in the Expenses of the group.
-
+- When creating a group add a section to add members by email (not mandatory to add members in that moment)
 - Add a new temporal recurring each 30 seconds just for test as this will be deleted
 
 - Remove html prefixes specific for browsers if not needed

@@ -273,10 +273,9 @@ function setupEditor(root: HTMLElement) {
       if (!r) continue;
       r.checkbox.checked = s.included;
       r.valueInput.disabled = !s.included || mode === "equal";
-      // Equal mode has no per-row value to enter, so hide the input entirely
-      // rather than render a permanently-disabled control (Material/iOS form
-      // pattern: don't show controls that can't be acted on in this state).
-      r.valueInput.style.display = mode === "equal" ? "none" : "";
+      // Equal mode has no per-row value to enter; hide the input but keep its
+      // layout slot so the dialog height doesn't jump when switching modes.
+      r.valueInput.style.visibility = mode === "equal" ? "hidden" : "";
       // Don't overwrite the field the user is currently typing into - that
       // resets the caret to the end and corrupts mid-edit selection.
       if (r.valueInput !== focused) {
