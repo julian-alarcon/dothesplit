@@ -165,7 +165,6 @@ svg[data-icon-slug="other"] {
 
 /* Strip browser-native number spinners on every numeric field-input. */
 .field-input[type="number"] {
-  -moz-appearance: textfield;
   appearance: textfield;
 }
 .field-input[type="number"]::-webkit-inner-spin-button,
@@ -192,7 +191,6 @@ svg[data-icon-slug="other"] {
   color: inherit;
   outline: none;
   transition: box-shadow 120ms ease;
-  -moz-appearance: textfield;
   appearance: textfield;
   color-scheme: light dark;
 }
@@ -225,7 +223,6 @@ svg[data-icon-slug="other"] {
      popup stays native (no spec-compliant way to style it on Android), but
      color-scheme below keeps its tone aligned with our theme. */
   appearance: none;
-  -webkit-appearance: none;
   color-scheme: light dark;
   /* FA Solid chevron-down (matches the FA icons used elsewhere in the UI).
      currentColor doesn't resolve inside url() data-URIs, so we hardcode

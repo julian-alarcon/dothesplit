@@ -54,13 +54,11 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Set static height for custom split
-- When creating a group add a section to add members by email (not mandatory to add members in that moment)
 - Add a new temporal recurring each 30 seconds just for test as this will be deleted
 
 - Remove html prefixes specific for browsers if not needed
 - Remove workarounds already fixed in latest browsers/html/css features
-
+- When to show/hide resources (mobile/desktop)
 - Themes
   - Use Inter font (in local to avoid calling thirt party entities)
 - **Settlements UI**: list past settlements per group; today you can only record them.
