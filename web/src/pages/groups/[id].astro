@@ -1,7 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
-import BackLink from "@/components/BackLink.astro";
 import SplitEditor from "@/components/SplitEditor.astro";
 import DatePicker from "@/components/DatePicker.astro";
 import FaIcon from "@/components/FaIcon.astro";
@@ -99,10 +98,7 @@ const inviteFailedRaw = Astro.url.searchParams.get("invite_failed");
 const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Number(inviteFailedRaw) : 0;
 ---
 
-<Base title={group.name}>
-  <div class="mb-4 flex items-center gap-2">
-    <BackLink href="/groups" label="Groups" />
-  </div>
+<Base title={group.name} wide back={{ href: "/groups", label: "Groups" }}>
   <div class="mb-2 flex items-baseline justify-between gap-3">
     <h1 class="min-w-0 flex-1 truncate text-2xl font-semibold">{group.name}</h1>
     <div class="flex shrink-0 items-center gap-2">
@@ -148,12 +144,13 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     </p>
   )}
 
-  <section class="mb-2 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+  <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[20.5rem_minmax(0,1fr)_20.5rem]">
+  <section class="mb-2 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 lg:order-1">
     <div class="mb-3 flex items-center justify-between gap-3">
       <h2 class="font-medium">Balances</h2>
       <a href={`/groups/${id}/settle`} class="btn-secondary btn-sm">Settle up</a>
     </div>
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="flex flex-col gap-6">
       <ul class="flex flex-col gap-2 text-sm">
         {net.map((b) => {
           const m = memberByID.get(b.user_id);
@@ -216,7 +213,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     </div>
   </section>
 
-  <section class="mb-2 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+  <section class="mb-2 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 lg:order-3">
     <h2 class="mb-3 font-medium">Add expense</h2>
     <form method="POST" action={`/api/expenses?id=${id}`} class="flex flex-col gap-4">
       <div class="flex items-end gap-2" data-category-picker>
@@ -283,7 +280,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
           </div>
         </dialog>
       </div>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="flex flex-col gap-4">
         <div>
           <label class="field">
             <input type="hidden" name="amount_dollars" />
@@ -333,7 +330,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     </form>
   </section>
 
-  <section>
+  <section class="lg:order-2">
     <h2 class="mb-3 font-medium">Activity</h2>
     {activity.length === 0 ? (
       <p class="text-sm text-neutral-500">No expenses or settlements yet.</p>
@@ -436,6 +433,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
       </ul>
     )}
   </section>
+  </div>
 
   <script>
     import "@/scripts/category-picker.ts";

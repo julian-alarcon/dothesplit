@@ -1,7 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
-import BackLink from "@/components/BackLink.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import CategoryIcon from "@/components/CategoryIcon.astro";
 import FaIcon from "@/components/FaIcon.astro";
@@ -40,11 +39,7 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 const showError = Astro.url.searchParams.get("error") === "1";
 ---
 
-<Base title={`${group.name} - recurring`}>
-  <div class="mb-4 flex items-center gap-2">
-    <BackLink href={`/groups/${id}`} label={group.name} />
-  </div>
-
+<Base title={`${group.name} - recurring`} back={{ href: `/groups/${id}`, label: group.name }}>
   <h1 class="mb-4 text-2xl font-semibold">Recurring expenses</h1>
 
   {showError && (

@@ -57,7 +57,7 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 - Add a new temporal recurring each 30 seconds just for test as this will be deleted
 
 - Themes: contrast
-- When to show/hide resources (mobile/desktop)
+
 
 - **Pagination** on expense and settlement lists. Load first 50 expenses and a Button at the end to load 25 more expenses.
 

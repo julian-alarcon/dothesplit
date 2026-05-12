@@ -2,10 +2,21 @@
 import { Font } from "astro:assets";
 import "@/styles/global.css";
 import Avatar from "@/components/Avatar.astro";
+import FaIcon from "@/components/FaIcon.astro";
 interface Props {
   title: string;
+  // Opt-in wider cap for pages that genuinely benefit from a multi-column
+  // layout at ≥1024px (e.g. the group dashboard's Balances | Activity |
+  // Add expense triptych). Default stays max-w-3xl (768px) - see the
+  // single-column rule in CLAUDE.md.
+  wide?: boolean;
+  // Optional "Back to X" link rendered in its own max-w-6xl row between the
+  // header and main, so its left edge anchors next to the brand regardless
+  // of whether the page uses the default or the wide cap.
+  back?: { href: string; label: string };
 }
-const { title } = Astro.props;
+const { title, wide = false, back } = Astro.props;
+const containerClass = wide ? "max-w-6xl" : "max-w-3xl";
 const user = Astro.locals.user;
 // Baked in at build time by the Dockerfile; defaults to "dev" when building
 // locally without a git context. Short SHA already (handled by the build args)
@@ -23,7 +34,7 @@ const buildCommit = (process.env.BUILD_COMMIT ?? "dev").slice(0, 12);
   </head>
   <body class="flex min-h-screen flex-col">
     <header class="border-b border-neutral-200 bg-white/70 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/70">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <a href={user ? "/groups" : "/"} class="text-lg font-semibold">DoTheSplit</a>
         {user ? (
           <a
@@ -47,11 +58,19 @@ const buildCommit = (process.env.BUILD_COMMIT ?? "dev").slice(0, 12);
         )}
       </div>
     </header>
-    <main class="mx-auto w-full max-w-5xl flex-1 px-2 py-2">
+    {back && (
+      <div class="mx-auto w-full max-w-6xl px-2 pt-3">
+        <a href={back.href} class="btn-secondary btn-sm self-start">
+          <FaIcon name="arrow-left-long" />
+          <span>Back to {back.label}</span>
+        </a>
+      </div>
+    )}
+    <main class:list={["mx-auto w-full flex-1 px-2 py-2", containerClass]}>
       <slot />
     </main>
     <footer class="border-t border-neutral-200 bg-white/70 py-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/70 dark:text-neutral-400">
-      <div class="mx-auto max-w-5xl px-4">
+      <div class="mx-auto max-w-6xl px-4">
         DoTheSplit ·
         {buildCommit === "dev" ? (
           <span>build <code class="font-mono">dev</code></span>

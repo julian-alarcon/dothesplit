@@ -1,7 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
-import BackLink from "@/components/BackLink.astro";
 import SplitEditor from "@/components/SplitEditor.astro";
 import DatePicker from "@/components/DatePicker.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
@@ -117,11 +116,7 @@ const fieldLabel: Record<string, string> = {
 };
 ---
 
-<Base title={expense.description}>
-  <div class="mb-4 flex items-center gap-2">
-    <BackLink href={`/groups/${id}`} label={group.name} />
-  </div>
-
+<Base title={expense.description} back={{ href: `/groups/${id}`, label: group.name }}>
   <div class="mb-6 flex items-center gap-3">
     <span class="inline-flex items-center justify-center">
       <CategoryIcon
@@ -252,7 +247,7 @@ const fieldLabel: Record<string, string> = {
             </div>
           </dialog>
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="flex flex-col gap-4">
           <div>
             <label class="field">
               <input type="hidden" name="amount_dollars" value={formatCents(expense.amount_cents)} />
@@ -322,7 +317,7 @@ const fieldLabel: Record<string, string> = {
     import "@/scripts/currency-input.ts";
   </script>
 
-  <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+  <div class="mb-4 flex flex-col gap-4">
     <section class="rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <h2 class="mb-3 font-medium">Splits</h2>
       <ul class="flex flex-col gap-2 text-sm">
