@@ -232,10 +232,13 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
             <CategoryIcon slug={defaultSlug} groupLabel={defaultGroupLabel} size={38} />
           </span>
         </button>
-        <label class="field flex-1">
-          <input name="description" required maxlength="200" placeholder=" " class="field-input" />
-          <span class="field-label" data-required>What was it?</span>
-        </label>
+        <div class="flex flex-1 flex-col">
+          <label class="field">
+            <input name="description" required maxlength="200" placeholder=" " class="field-input" />
+            <span class="field-label" data-required>What was it?</span>
+          </label>
+          <p class="field-error">Required</p>
+        </div>
         <dialog
           data-category-dialog
           aria-modal="true"
@@ -281,20 +284,24 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
         </dialog>
       </div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label class="field">
-          <input type="hidden" name="amount_dollars" />
-          <input
-            type="text"
-            inputmode="decimal"
-            data-currency-input
-            data-currency-hidden="amount_dollars"
-            data-currency={currency}
-            required
-            placeholder=" "
-            class="field-input field-input-currency"
-          />
-          <span class="field-label" data-required>Amount ({currency})</span>
-        </label>
+        <div>
+          <label class="field">
+            <input type="hidden" name="amount_dollars" />
+            <input
+              type="text"
+              inputmode="decimal"
+              pattern="[0-9.,]+"
+              data-currency-input
+              data-currency-hidden="amount_dollars"
+              data-currency={currency}
+              required
+              placeholder=" "
+              class="field-input field-input-currency"
+            />
+            <span class="field-label" data-required>Amount ({currency})</span>
+          </label>
+          <p class="field-error">Enter an amount greater than 0</p>
+        </div>
         <label class="field-select-row">
           <span>Paid by</span>
           <select name="payer_id" required class="field-select">

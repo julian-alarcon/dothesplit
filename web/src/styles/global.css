@@ -167,6 +167,25 @@ svg[data-icon-slug="other"] {
   color: var(--color-red-600);
 }
 
+/* User-driven validation feedback. :user-invalid only matches after the
+   user has interacted with the field (blur or submit attempt), so we don't
+   paint everything red on first paint. This is the only visible cue on
+   Firefox for Android https://bugzilla.mozilla.org/show_bug.cgi?id=1510450,
+   which doesn't render the native constraint-validation
+   tooltip - so without these rules a failed submit looks like a no-op. */
+.field:has(.field-input:user-invalid) {
+  box-shadow: inset 0 -2px 0 0 var(--color-red-600);
+}
+.field-error {
+  display: none;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-red-600);
+}
+.field:has(.field-input:user-invalid) + .field-error {
+  display: block;
+}
+
 /* Hide the placeholder visually - we use placeholder=" " purely as a
    :placeholder-shown signal so the label can detect "empty". */
 .field-input::placeholder {
@@ -212,6 +231,9 @@ svg[data-icon-slug="other"] {
 .field-input-num:focus {
   box-shadow: inset 0 -2px 0 0 var(--field-focus);
 }
+.field-input-num:user-invalid {
+  box-shadow: inset 0 -2px 0 0 var(--color-red-600);
+}
 .field-input-num:disabled {
   opacity: 0.5;
 }
@@ -249,6 +271,9 @@ svg[data-icon-slug="other"] {
     /* Same path with neutral-300 fill for visibility on dark surface. */
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23d4d4d4' d='M297.4 470.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 402.7L150.6 233.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/></svg>");
   }
+}
+.field-select:user-invalid {
+  border-color: var(--color-red-600);
 }
 
 /* Currency-aware text input: typed value sits flush right, with the live

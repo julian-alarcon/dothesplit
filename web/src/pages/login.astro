@@ -20,10 +20,12 @@ const showError = Astro.url.searchParams.get("error") === "1";
         <input type="email" name="email" required placeholder=" " class="field-input" />
         <span class="field-label" data-required>Email</span>
       </label>
+      <p class="field-error">Enter a valid email address</p>
       <label class="field">
         <input type="password" name="password" required minlength="10" placeholder=" " class="field-input" />
         <span class="field-label" data-required>Password</span>
       </label>
+      <p class="field-error">Password must be at least 10 characters</p>
       <button type="submit" class="btn-primary mt-2 self-end">Log in</button>
     </form>
     <p class="mt-4 text-sm text-neutral-600 dark:text-neutral-400">

@@ -20,14 +20,17 @@ const showError = Astro.url.searchParams.get("error") === "1";
         <input name="display_name" required maxlength="80" placeholder=" " class="field-input" />
         <span class="field-label" data-required>Display name</span>
       </label>
+      <p class="field-error">Required</p>
       <label class="field">
         <input type="email" name="email" required placeholder=" " class="field-input" />
         <span class="field-label" data-required>Email</span>
       </label>
+      <p class="field-error">Enter a valid email address</p>
       <label class="field">
         <input type="password" name="password" required minlength="10" placeholder=" " class="field-input" />
         <span class="field-label" data-required>Password (min 10 characters)</span>
       </label>
+      <p class="field-error">Password must be at least 10 characters</p>
       <button type="submit" class="btn-primary mt-2 self-end">Create account</button>
     </form>
     <p class="mt-4 text-sm text-neutral-600 dark:text-neutral-400">

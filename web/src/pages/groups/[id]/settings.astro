@@ -80,6 +80,7 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
         />
         <span class="field-label" data-required>Group name</span>
       </label>
+      <p class="field-error">Required</p>
       <label class="field-select-row">
         <span>Default currency</span>
         <select name="default_currency" class="field-select">
@@ -149,16 +150,19 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
       action={`/api/group-members?id=${id}`}
       class="flex items-end gap-2"
     >
-      <label class="field flex-1">
-        <input
-          type="email"
-          name="email"
-          placeholder=" "
-          required
-          class="field-input"
-        />
-        <span class="field-label" data-required>New member email</span>
-      </label>
+      <div class="flex flex-1 flex-col">
+        <label class="field">
+          <input
+            type="email"
+            name="email"
+            placeholder=" "
+            required
+            class="field-input"
+          />
+          <span class="field-label" data-required>New member email</span>
+        </label>
+        <p class="field-error">Enter a valid email address</p>
+      </div>
       <button type="submit" class="btn-primary">Add</button>
     </form>
     <p class="mt-1 text-xs text-neutral-600 dark:text-neutral-400">The invitee must already be registered.</p>

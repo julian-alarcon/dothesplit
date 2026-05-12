@@ -59,8 +59,8 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 - Themes: contrast
 - When to show/hide resources (mobile/desktop)
 
-- **Settlements UI**: list past settlements per group; today you can only record them.
 - **Pagination** on expense and settlement lists. Load first 50 expenses and a Button at the end to load 25 more expenses.
+
   - Add a label when there is a new month as part of the list of the expenses page
 - Publishing to GitHub on releases and Github docker registry
 - Deploy in TrueNAS with custom docker-compose

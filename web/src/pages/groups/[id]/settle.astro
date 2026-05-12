@@ -64,6 +64,7 @@ const showError = Astro.url.searchParams.get("error") === "1";
           <input
             type="text"
             inputmode="decimal"
+            pattern="[0-9.,]+"
             data-currency-input
             data-currency-hidden="amount_dollars"
             data-currency={currency}
@@ -73,6 +74,7 @@ const showError = Astro.url.searchParams.get("error") === "1";
           />
           <span class="field-label" data-required>Amount ({currency})</span>
         </label>
+        <p class="field-error">Enter an amount greater than 0</p>
 
         <div class="flex items-center justify-end gap-2">
           <a href={`/groups/${id}`} class="btn-secondary">Cancel</a>

@@ -75,6 +75,7 @@ const okMessages: Record<string, string> = {
           />
           <span class="field-label" data-required>Display name</span>
         </label>
+        <p class="field-error">Required</p>
         <div class="flex justify-end">
           <button type="submit" class="btn-primary">Save name</button>
         </div>
@@ -151,6 +152,7 @@ const okMessages: Record<string, string> = {
           />
           <span class="field-label" data-required>Current password</span>
         </label>
+        <p class="field-error">Required</p>
         <label class="field">
           <input
             type="password"
@@ -162,6 +164,7 @@ const okMessages: Record<string, string> = {
           />
           <span class="field-label" data-required>New password (min 10 characters)</span>
         </label>
+        <p class="field-error">Password must be at least 10 characters</p>
         <div class="flex justify-end">
           <button type="submit" class="btn-primary">Change password</button>
         </div>
