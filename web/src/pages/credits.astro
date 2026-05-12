@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import credits from "@/lib/credits.json";
 
-const { project, fontAwesome, backend, frontend } = credits;
+const { project, fontAwesome, inter, backend, frontend } = credits;
 ---
 
 <Base title="Credits">
@@ -30,6 +30,18 @@ const { project, fontAwesome, backend, frontend } = credits;
         <a href={fontAwesome.licenseUrl} class="underline" rel="noopener noreferrer" target="_blank">{fontAwesome.license}</a>
         (<a href={fontAwesome.licensePageUrl} class="underline" rel="noopener noreferrer" target="_blank">license page</a>).
         {fontAwesome.modificationStatement}
+      </p>
+    </section>
+
+    <section class="mb-8 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <h2 class="mb-2 text-lg font-semibold">Inter Font</h2>
+      <p class="text-sm text-neutral-700 dark:text-neutral-300">
+        Body type by
+        <a href={inter.creatorUrl} class="underline" rel="noopener noreferrer" target="_blank">{inter.creator}</a>,
+        licensed under the
+        <a href={inter.licenseUrl} class="underline" rel="noopener noreferrer" target="_blank">{inter.license}</a>.
+        Self-hosted from <code class="font-mono">{inter.licensePath}</code>.
+        {inter.modificationStatement}
       </p>
     </section>
 

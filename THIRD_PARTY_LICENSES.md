@@ -19,6 +19,13 @@ DoTheSplit uses icons from [Font Awesome](https://fontawesome.com), the Free
 tier, distributed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
 License page: <https://fontawesome.com/license/free>. Icons are used unmodified.
 
+## Inter Font (SIL Open Font License 1.1)
+
+DoTheSplit ships [Inter](https://rsms.me/inter/) by Rasmus Andersson,
+self-hosted under the [SIL Open Font License 1.1](https://openfontlicense.org/).
+License text: [web/src/assets/fonts/inter/OFL.txt](web/src/assets/fonts/inter/OFL.txt).
+Files used unmodified.
+
 ## Backend (Go modules)
 
 Generated from `go-licenses csv ./cmd/api ./cmd/worker` against [api/go.mod](api/go.mod).

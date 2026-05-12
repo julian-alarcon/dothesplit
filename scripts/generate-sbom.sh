@@ -32,6 +32,25 @@ echo "→ CycloneDX SBOM: web"
     --output-format JSON
 )
 
+# Inter ships as loose woff2 files under web/src/assets/fonts/inter/, not as an
+# npm package, so cyclonedx-npm doesn't see it. Splice in a `file` component so
+# auditors get the OFL-1.1 attribution alongside the rest of the web tree.
+echo "→ Adding Inter font to web SBOM"
+INTER_TMP="$(mktemp)"
+jq '.components += [{
+  "type": "file",
+  "name": "inter",
+  "version": "4.1",
+  "description": "Inter font (Rasmus Andersson), self-hosted woff2 assets under web/src/assets/fonts/inter/",
+  "licenses": [{ "license": { "id": "OFL-1.1" } }],
+  "externalReferences": [
+    { "type": "website", "url": "https://rsms.me/inter/" },
+    { "type": "vcs", "url": "https://github.com/rsms/inter" },
+    { "type": "distribution", "url": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip" }
+  ],
+  "purl": "pkg:generic/inter@4.1"
+}]' "$OUT/web.cdx.json" >"$INTER_TMP" && mv "$INTER_TMP" "$OUT/web.cdx.json"
+
 echo "→ Verifying CycloneDX format"
 for f in "$OUT/api.cdx.json" "$OUT/worker.cdx.json" "$OUT/web.cdx.json"; do
   if ! jq -e '.bomFormat == "CycloneDX"' "$f" >/dev/null; then

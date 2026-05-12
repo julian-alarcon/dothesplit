@@ -13,6 +13,14 @@
     "licensePageUrl": "https://fontawesome.com/license/free",
     "modificationStatement": "Icons used unmodified."
   },
+  "inter": {
+    "creator": "Rasmus Andersson",
+    "creatorUrl": "https://rsms.me/inter/",
+    "license": "SIL Open Font License 1.1",
+    "licenseUrl": "https://openfontlicense.org/",
+    "licensePath": "web/src/assets/fonts/inter/OFL.txt",
+    "modificationStatement": "Files used unmodified."
+  },
   "backend": [
     {
       "name": "github.com/getkin/kin-openapi",

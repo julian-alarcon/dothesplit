@@ -56,11 +56,9 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 - Add a new temporal recurring each 30 seconds just for test as this will be deleted
 
-- Remove html prefixes specific for browsers if not needed
-- Remove workarounds already fixed in latest browsers/html/css features
+- Themes: contrast
 - When to show/hide resources (mobile/desktop)
-- Themes
-  - Use Inter font (in local to avoid calling thirt party entities)
+
 - **Settlements UI**: list past settlements per group; today you can only record them.
 - **Pagination** on expense and settlement lists. Load first 50 expenses and a Button at the end to load 25 more expenses.
   - Add a label when there is a new month as part of the list of the expenses page

@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* --font-inter is injected by Astro's local font provider (see astro.config.mjs).
+   Tailwind v4 preflight resolves the body font-family from --default-font-family
+   (not --font-sans), so we override both: --font-sans powers `font-sans` utilities
+   and --default-font-family powers the implicit body font. font-mono stays at
+   Tailwind's default. */
+@theme {
+  --default-font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   color-scheme: light dark;
   /* neutral-500 stays >= 4.5:1 against both white and near-black bodies,

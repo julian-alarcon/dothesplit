@@ -154,6 +154,14 @@ jq -n \
       licensePageUrl: "https://fontawesome.com/license/free",
       modificationStatement: "Icons used unmodified."
     },
+    inter: {
+      creator: "Rasmus Andersson",
+      creatorUrl: "https://rsms.me/inter/",
+      license: "SIL Open Font License 1.1",
+      licenseUrl: "https://openfontlicense.org/",
+      licensePath: "web/src/assets/fonts/inter/OFL.txt",
+      modificationStatement: "Files used unmodified."
+    },
     backend: $backend,
     frontend: $frontend
   }' >"$OUT_JSON"
@@ -188,6 +196,14 @@ EOF
   echo "DoTheSplit uses icons from [Font Awesome](https://fontawesome.com), the Free"
   echo "tier, distributed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)."
   echo "License page: <https://fontawesome.com/license/free>. Icons are used unmodified."
+  echo
+
+  echo "## Inter Font (SIL Open Font License 1.1)"
+  echo
+  echo "DoTheSplit ships [Inter](https://rsms.me/inter/) by Rasmus Andersson,"
+  echo "self-hosted under the [SIL Open Font License 1.1](https://openfontlicense.org/)."
+  echo "License text: [web/src/assets/fonts/inter/OFL.txt](web/src/assets/fonts/inter/OFL.txt)."
+  echo "Files used unmodified."
   echo
 
   echo "## Backend (Go modules)"
