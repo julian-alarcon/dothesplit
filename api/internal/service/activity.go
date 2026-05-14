@@ -128,7 +128,7 @@ func (s *ActivityService) List(ctx context.Context, actorID, groupID uuid.UUID, 
 				// hydration query - skip it. Pagination still progresses.
 				continue
 			}
-			item.Expense = &e
+			item.Expense = e
 			if c, ok := cadenceByExpense[row.ID]; ok {
 				item.Cadence = c
 			}
@@ -149,10 +149,14 @@ func (s *ActivityService) List(ctx context.Context, actorID, groupID uuid.UUID, 
 	return page, nil
 }
 
-// Cursor format: base64-url(occurred_at_rfc3339nano | kind | uuid). Pipes are
-// safe because RFC3339 doesn't use them and our kinds don't either.
+// Cursor format: base64-url(occurred_at | created_at | kind | uuid), each
+// time RFC3339Nano. Pipes are safe because RFC3339 doesn't use them and our
+// kinds don't either. created_at is the secondary sort key; kind is kept in
+// the payload for forward compatibility but is not used in the WHERE clause.
 func encodeActivityCursor(r repo.ActivityRow) string {
-	raw := r.OccurredAt.UTC().Format(time.RFC3339Nano) + "|" + string(r.Kind) + "|" + r.ID.String()
+	raw := r.OccurredAt.UTC().Format(time.RFC3339Nano) + "|" +
+		r.CreatedAt.UTC().Format(time.RFC3339Nano) + "|" +
+		string(r.Kind) + "|" + r.ID.String()
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
 }
 
@@ -164,21 +168,25 @@ func decodeActivityCursor(s string) (*repo.ActivityRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	parts := strings.SplitN(string(decoded), "|", 3)
-	if len(parts) != 3 {
+	parts := strings.SplitN(string(decoded), "|", 4)
+	if len(parts) != 4 {
 		return nil, errors.New("malformed cursor")
 	}
 	occurredAt, err := time.Parse(time.RFC3339Nano, parts[0])
 	if err != nil {
 		return nil, err
 	}
-	kind := repo.ActivityKind(parts[1])
-	if kind != repo.ActivityExpense && kind != repo.ActivitySettlement {
-		return nil, errors.New("malformed cursor kind")
-	}
-	id, err := uuid.Parse(parts[2])
+	createdAt, err := time.Parse(time.RFC3339Nano, parts[1])
 	if err != nil {
 		return nil, err
 	}
-	return &repo.ActivityRow{Kind: kind, OccurredAt: occurredAt, ID: id}, nil
+	kind := repo.ActivityKind(parts[2])
+	if kind != repo.ActivityExpense && kind != repo.ActivitySettlement {
+		return nil, errors.New("malformed cursor kind")
+	}
+	id, err := uuid.Parse(parts[3])
+	if err != nil {
+		return nil, err
+	}
+	return &repo.ActivityRow{Kind: kind, OccurredAt: occurredAt, CreatedAt: createdAt, ID: id}, nil
 }
