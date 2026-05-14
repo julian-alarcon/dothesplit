@@ -28,6 +28,7 @@ type Server struct {
 	Balances    *service.BalanceService
 	Settlements *service.SettlementService
 	Recurring   *service.RecurringService
+	Activity    *service.ActivityService
 }
 
 func writeErr(c *gin.Context, status int, code, message string) {

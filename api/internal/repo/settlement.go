@@ -68,6 +68,33 @@ func (r *SettlementRepo) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// FindByIDs returns the non-deleted settlements with the given IDs, keyed by id.
+// Missing IDs (or soft-deleted ones) are simply absent from the result.
+func (r *SettlementRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]Settlement, error) {
+	if len(ids) == 0 {
+		return map[uuid.UUID]Settlement{}, nil
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, group_id, from_user, to_user, amount_cents, note, settled_at, created_at
+		FROM settlements
+		WHERE id = ANY($1) AND deleted_at IS NULL
+	`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[uuid.UUID]Settlement, len(ids))
+	for rows.Next() {
+		var s Settlement
+		if err := rows.Scan(&s.ID, &s.GroupID, &s.FromUser, &s.ToUser,
+			&s.AmountCents, &s.Note, &s.SettledAt, &s.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[s.ID] = s
+	}
+	return out, rows.Err()
+}
+
 func (r *SettlementRepo) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]Settlement, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, group_id, from_user, to_user, amount_cents, note, settled_at, created_at

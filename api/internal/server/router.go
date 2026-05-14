@@ -71,6 +71,8 @@ func New(s *handlers.Server) http.Handler {
 	auth.GET("/settlements/:id", s.GetSettlement)
 	auth.DELETE("/settlements/:id", s.DeleteSettlement)
 
+	auth.GET("/groups/:id/activity", s.ListActivity)
+
 	auth.GET("/groups/:id/recurring-expenses", s.ListRecurringExpenses)
 	auth.POST("/groups/:id/recurring-expenses", s.CreateRecurringExpense)
 	auth.DELETE("/recurring-expenses/:id", s.DeleteRecurringExpense)

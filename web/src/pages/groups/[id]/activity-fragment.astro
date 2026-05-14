@@ -1,0 +1,140 @@
+---
+// Server-rendered HTML fragment for the activity Load-more island. Returns a
+// list of <li> items + a hidden div carrying the next cursor, no document
+// shell. The dashboard's activity-load-more.ts fetches this URL as text and
+// appends the items into the existing <ul>.
+//
+// Render-only: no auth or 404 redirects (the API call already enforces that).
+import Avatar from "@/components/Avatar.astro";
+import FaIcon from "@/components/FaIcon.astro";
+import CategoryIcon from "@/components/CategoryIcon.astro";
+import { apiFor } from "@/lib/api/client";
+
+const { id } = Astro.params as { id: string };
+const cursor = Astro.url.searchParams.get("cursor") ?? "";
+const limit = Astro.url.searchParams.get("limit") ?? "25";
+
+const api = apiFor(Astro.locals.cookie);
+const [groupsRes, categoriesRes, activityRes] = await Promise.all([
+  api.GET("/v1/groups"),
+  api.GET("/v1/categories"),
+  api.GET("/v1/groups/{id}/activity", {
+    params: { path: { id }, query: { cursor: cursor || undefined, limit: Number(limit) } },
+  }),
+]);
+const group = groupsRes.data?.find((g) => g.id === id);
+const categories = categoriesRes.data ?? [];
+const activity = activityRes.data?.items ?? [];
+const nextCursor = activityRes.data?.next_cursor ?? "";
+
+const cadenceLabels: Record<string, string> = {
+  daily: "daily",
+  weekly: "weekly",
+  biweekly: "every 2 weeks",
+  monthly: "monthly",
+  yearly: "yearly",
+};
+const categoryByID = new Map(categories.map((c) => [c.id, c]));
+const memberByID = new Map((group?.members ?? []).map((m) => [m.user_id, m]));
+const nameByUserID = new Map<string, string>();
+for (const m of group?.members ?? []) nameByUserID.set(m.user_id, m.display_name);
+
+const currency = group?.default_currency ?? "EUR";
+const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+---
+{activity.map((item) => {
+  if (item.kind === "expense" && item.expense) {
+    const e = item.expense;
+    const cat = categoryByID.get(e.category_id);
+    const cadence = item.cadence;
+    return (
+      <li>
+        <a
+          href={`/groups/${id}/expenses/${e.id}`}
+          class="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500"
+        >
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="shrink-0 inline-flex items-center justify-center" title={cat?.label ?? ""}>
+              <CategoryIcon slug={cat?.slug} groupLabel={cat?.group_label} size={28} />
+            </span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5 font-medium">
+                <span class="truncate">{e.description}</span>
+                {cadence && (
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                    title={`Repeats ${cadenceLabels[cadence] ?? cadence}`}
+                  >
+                    <FaIcon name="arrows-rotate" size={11} />
+                    {cadenceLabels[cadence] ?? cadence}
+                  </span>
+                )}
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+                <span>{dateFmt.format(new Date(e.incurred_at))} · paid by</span>
+                <Avatar
+                  userId={e.payer_id}
+                  displayName={nameByUserID.get(e.payer_id) ?? "?"}
+                  hasAvatar={memberByID.get(e.payer_id)?.has_avatar}
+                  avatarUpdatedAt={memberByID.get(e.payer_id)?.avatar_updated_at}
+                  size={16}
+                />
+                <span class="truncate">{nameByUserID.get(e.payer_id) ?? "?"}</span>
+              </div>
+            </div>
+          </div>
+          <span class="shrink-0 font-mono">
+            {new Intl.NumberFormat(undefined, { style: "currency", currency: e.currency, currencyDisplay: "narrowSymbol" }).format(e.amount_cents / 100)}
+          </span>
+        </a>
+      </li>
+    );
+  }
+  if (!item.settlement) return null;
+  const s = item.settlement;
+  const from = memberByID.get(s.from_user_id);
+  const to = memberByID.get(s.to_user_id);
+  return (
+    <li>
+      <a
+        href={`/groups/${id}/settlements/${s.id}`}
+        class="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-emerald-900 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 dark:focus-visible:ring-emerald-700"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" title="Settlement">
+            <FaIcon name="arrow-right" size={14} />
+          </span>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 font-medium">
+              <Avatar
+                userId={s.from_user_id}
+                displayName={from?.display_name ?? "?"}
+                hasAvatar={from?.has_avatar}
+                avatarUpdatedAt={from?.avatar_updated_at}
+                size={18}
+              />
+              <span class="truncate">{nameByUserID.get(s.from_user_id) ?? "?"}</span>
+              <span class="text-neutral-600 dark:text-neutral-400">paid</span>
+              <Avatar
+                userId={s.to_user_id}
+                displayName={to?.display_name ?? "?"}
+                hasAvatar={to?.has_avatar}
+                avatarUpdatedAt={to?.avatar_updated_at}
+                size={18}
+              />
+              <span class="truncate">{nameByUserID.get(s.to_user_id) ?? "?"}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+              <span>{dateFmt.format(new Date(s.settled_at))} · settlement</span>
+              {s.note && <span class="truncate">· {s.note}</span>}
+            </div>
+          </div>
+        </div>
+        <span class="shrink-0 font-mono">
+          {new Intl.NumberFormat(undefined, { style: "currency", currency, currencyDisplay: "narrowSymbol" }).format(s.amount_cents / 100)}
+        </span>
+      </a>
+    </li>
+  );
+})}
+<div data-activity-next-cursor={nextCursor} hidden></div>

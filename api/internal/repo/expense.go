@@ -121,6 +121,59 @@ func (r *ExpenseRepo) ListByGroup(ctx context.Context, groupID uuid.UUID) ([]Exp
 	return exps, srows.Err()
 }
 
+// FindByIDs returns the non-deleted expenses (with their splits) for the given
+// IDs, keyed by id. Missing or soft-deleted IDs are simply absent.
+func (r *ExpenseRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]Expense, error) {
+	if len(ids) == 0 {
+		return map[uuid.UUID]Expense{}, nil
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, group_id, payer_id, created_by, category_id, amount_cents, currency, description, incurred_at, created_at
+		FROM expenses
+		WHERE id = ANY($1) AND deleted_at IS NULL
+	`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[uuid.UUID]Expense, len(ids))
+	for rows.Next() {
+		var e Expense
+		if err := rows.Scan(&e.ID, &e.GroupID, &e.PayerID, &e.CreatedBy, &e.CategoryID, &e.AmountCents,
+			&e.Currency, &e.Description, &e.IncurredAt, &e.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[e.ID] = e
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(out) == 0 {
+		return out, nil
+	}
+	hitIDs := make([]uuid.UUID, 0, len(out))
+	for id := range out {
+		hitIDs = append(hitIDs, id)
+	}
+	srows, err := r.pool.Query(ctx, `
+		SELECT expense_id, user_id, share_cents FROM splits WHERE expense_id = ANY($1)
+	`, hitIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer srows.Close()
+	for srows.Next() {
+		var s Split
+		if err := srows.Scan(&s.ExpenseID, &s.UserID, &s.ShareCents); err != nil {
+			return nil, err
+		}
+		e := out[s.ExpenseID]
+		e.Splits = append(e.Splits, s)
+		out[s.ExpenseID] = e
+	}
+	return out, srows.Err()
+}
+
 func (r *ExpenseRepo) FindByID(ctx context.Context, id uuid.UUID) (*Expense, error) {
 	var e Expense
 	err := r.pool.QueryRow(ctx, `

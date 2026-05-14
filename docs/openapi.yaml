@@ -50,6 +50,8 @@ tags:
     description: "`X paid Y` records that offset balances."
   - name: recurring
     description: Templates materialized into real expenses by the background worker.
+  - name: activity
+    description: Merged, paginated feed of expenses and settlements for a group, newest first.
   - name: health
     description: Liveness and readiness probes (unversioned).
 
@@ -564,6 +566,33 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /v1/groups/{id}/activity:
+    get:
+      summary: List the merged activity feed for a group (newest first, paginated)
+      operationId: listActivity
+      tags: [activity]
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+          description: Max items to return. Defaults to 50.
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string }
+          description: Opaque cursor returned by a previous response; omit for the first page.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActivityPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /v1/groups/{id}/recurring-expenses:
     get:
       summary: List recurring expense templates for a group
@@ -1047,6 +1076,35 @@ components:
         note: { type: string }
         settled_at: { type: string, format: date-time }
         created_at: { type: string, format: date-time }
+
+    ActivityItem:
+      type: object
+      required: [kind, occurred_at]
+      properties:
+        kind:
+          type: string
+          enum: [expense, settlement]
+        occurred_at: { type: string, format: date-time }
+        cadence:
+          allOf: [{ $ref: "#/components/schemas/Cadence" }]
+          description: "When kind=expense and the expense matches a recurring template by content, the template's cadence. Omitted otherwise."
+        expense:
+          allOf: [{ $ref: "#/components/schemas/Expense" }]
+          description: "Present iff kind=expense."
+        settlement:
+          allOf: [{ $ref: "#/components/schemas/Settlement" }]
+          description: "Present iff kind=settlement."
+
+    ActivityPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityItem" }
+        next_cursor:
+          type: string
+          description: "Pass to the next request as `cursor`. Absent when there are no more items."
 
     Cadence:
       type: string

@@ -377,6 +377,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/groups/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the merged activity feed for a group (newest first, paginated) */
+        get: operations["listActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/groups/{id}/recurring-expenses": {
         parameters: {
             query?: never;
@@ -725,6 +742,23 @@ export interface components {
             settled_at: string;
             /** Format: date-time */
             created_at: string;
+        };
+        ActivityItem: {
+            /** @enum {string} */
+            kind: "expense" | "settlement";
+            /** Format: date-time */
+            occurred_at: string;
+            /** @description When kind=expense and the expense matches a recurring template by content, the template's cadence. Omitted otherwise. */
+            cadence?: components["schemas"]["Cadence"];
+            /** @description Present iff kind=expense. */
+            expense?: components["schemas"]["Expense"];
+            /** @description Present iff kind=settlement. */
+            settlement?: components["schemas"]["Settlement"];
+        };
+        ActivityPage: {
+            items: components["schemas"]["ActivityItem"][];
+            /** @description Pass to the next request as `cursor`. Absent when there are no more items. */
+            next_cursor?: string;
         };
         /** @enum {string} */
         Cadence: "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -1569,6 +1603,36 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listActivity: {
+        parameters: {
+            query?: {
+                /** @description Max items to return. Defaults to 50. */
+                limit?: number;
+                /** @description Opaque cursor returned by a previous response; omit for the first page. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listRecurringExpenses: {

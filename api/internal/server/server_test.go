@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -101,20 +102,23 @@ func setup(t *testing.T) *testStack {
 	recurring := repo.NewRecurringRepo(pool)
 	categories := repo.NewCategoryRepo(pool)
 	categorySvc := service.NewCategoryService(categories)
+	activityRepo := repo.NewActivityRepo(pool)
 
 	sessionRepo := repo.NewSessionRepo(pool)
 	ttl := time.Duration(cfg.SessionTTLDay) * 24 * time.Hour
+	groupSvc := service.NewGroupService(groups, users, balances, email)
 	h := server.New(&handlers.Server{
 		Cfg:         cfg,
 		Pool:        pool,
 		Auth:        service.NewAuthService(users, sessionRepo, email, cfg.PasswordPepper, ttl),
 		MeSvc:       service.NewMeService(users, sessionRepo, email, cfg.PasswordPepper),
-		Groups:      service.NewGroupService(groups, users, balances, email),
+		Groups:      groupSvc,
 		Categories:  categorySvc,
 		Expenses:    service.NewExpenseService(expenses, groups, categorySvc),
 		Balances:    service.NewBalanceService(balances, groups),
 		Settlements: service.NewSettlementService(settlements, groups),
 		Recurring:   service.NewRecurringService(recurring, expenses, groups, categorySvc),
+		Activity:    service.NewActivityService(groupSvc, activityRepo, expenses, settlements, recurring),
 	})
 	srv := httptest.NewServer(h)
 
@@ -765,6 +769,154 @@ func TestGoldenPath(t *testing.T) {
 	// /healthz always open
 	resp, _ = request(t, "GET", base+"/healthz", nil, nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// TestActivityFeed exercises the merged /v1/groups/{id}/activity endpoint:
+// page size, ordering invariant (newest first), cursor continuation across
+// multiple pages, no-overlap guarantee, and 403 for non-members.
+func TestActivityFeed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration: needs Docker/testcontainers")
+	}
+	ts := setup(t)
+	base := ts.srv.URL
+
+	userA, cookieA := registerUser(t, base, "feed-a@test.dev", "passwordpassword", "FeedA")
+	userB, cookieB := registerUser(t, base, "feed-b@test.dev", "passwordpassword", "FeedB")
+
+	resp, gBody := request(t, "POST", base+"/v1/groups",
+		map[string]any{"name": "FeedTest"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	groupID := gBody["id"].(string)
+	resp, _ = request(t, "POST", base+"/v1/groups/"+groupID+"/members",
+		map[string]any{"email": "feed-b@test.dev"}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Seed: 60 expenses + 20 settlements with strictly increasing incurred_at /
+	// settled_at, so the newest-first contract is verifiable. Interleave kinds
+	// so the merged feed actually merges (not just concatenates).
+	const expenseCount = 60
+	const settlementCount = 20
+	totalCount := expenseCount + settlementCount
+	t0 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	expIdx, setIdx := 0, 0
+	for i := 0; i < totalCount; i++ {
+		at := t0.Add(time.Duration(i) * time.Minute)
+		atStr := at.Format(time.RFC3339Nano)
+		if (i%4 == 3) && setIdx < settlementCount {
+			resp, _ := request(t, "POST", base+"/v1/groups/"+groupID+"/settlements", map[string]any{
+				"to_user_id":   userA["id"],
+				"amount_cents": 100 + i,
+				"settled_at":   atStr,
+			}, cookieB)
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+			setIdx++
+			continue
+		}
+		if expIdx < expenseCount {
+			resp, _ := request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
+				"description":  fmt.Sprintf("E%d", expIdx),
+				"amount_cents": 200 + i,
+				"payer_id":     userA["id"],
+				"mode":         "equal",
+				"incurred_at":  atStr,
+				"splits": []map[string]any{
+					{"user_id": userA["id"]}, {"user_id": userB["id"]},
+				},
+			}, cookieA)
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+			expIdx++
+			continue
+		}
+		resp, _ := request(t, "POST", base+"/v1/groups/"+groupID+"/settlements", map[string]any{
+			"to_user_id":   userA["id"],
+			"amount_cents": 100 + i,
+			"settled_at":   atStr,
+		}, cookieB)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		setIdx++
+	}
+	require.Equal(t, expenseCount, expIdx)
+	require.Equal(t, settlementCount, setIdx)
+
+	// Page 1: default limit 50.
+	collected := map[string]bool{}
+	var lastAt string
+	resp, p1 := request(t, "GET", base+"/v1/groups/"+groupID+"/activity", nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	items1 := p1["items"].([]any)
+	require.Len(t, items1, 50)
+	require.NotNil(t, p1["next_cursor"])
+	for _, raw := range items1 {
+		item := raw.(map[string]any)
+		at := item["occurred_at"].(string)
+		if lastAt != "" {
+			require.True(t, at <= lastAt, "items must be newest first; got %s after %s", at, lastAt)
+		}
+		lastAt = at
+		key := item["kind"].(string) + ":"
+		if e, ok := item["expense"].(map[string]any); ok {
+			key += e["id"].(string)
+		} else if s, ok := item["settlement"].(map[string]any); ok {
+			key += s["id"].(string)
+		}
+		require.False(t, collected[key], "duplicate item across pages: %s", key)
+		collected[key] = true
+	}
+
+	// Page 2: cursor + limit 25.
+	cursor := p1["next_cursor"].(string)
+	resp, p2 := request(t, "GET", base+"/v1/groups/"+groupID+"/activity?limit=25&cursor="+cursor, nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	items2 := p2["items"].([]any)
+	require.Len(t, items2, 25)
+	require.NotNil(t, p2["next_cursor"])
+	for _, raw := range items2 {
+		item := raw.(map[string]any)
+		at := item["occurred_at"].(string)
+		require.True(t, at <= lastAt, "page-2 items must continue strictly newest-first; got %s after %s", at, lastAt)
+		lastAt = at
+		key := item["kind"].(string) + ":"
+		if e, ok := item["expense"].(map[string]any); ok {
+			key += e["id"].(string)
+		} else if s, ok := item["settlement"].(map[string]any); ok {
+			key += s["id"].(string)
+		}
+		require.False(t, collected[key], "duplicate item across pages: %s", key)
+		collected[key] = true
+	}
+
+	// Page 3: drains the remaining 5 items, no next_cursor.
+	cursor = p2["next_cursor"].(string)
+	resp, p3 := request(t, "GET", base+"/v1/groups/"+groupID+"/activity?limit=25&cursor="+cursor, nil, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	items3 := p3["items"].([]any)
+	require.Len(t, items3, totalCount-50-25)
+	require.Nil(t, p3["next_cursor"])
+	for _, raw := range items3 {
+		item := raw.(map[string]any)
+		at := item["occurred_at"].(string)
+		require.True(t, at <= lastAt)
+		lastAt = at
+		key := item["kind"].(string) + ":"
+		if e, ok := item["expense"].(map[string]any); ok {
+			key += e["id"].(string)
+		} else if s, ok := item["settlement"].(map[string]any); ok {
+			key += s["id"].(string)
+		}
+		require.False(t, collected[key], "duplicate item across pages: %s", key)
+		collected[key] = true
+	}
+	require.Len(t, collected, totalCount)
+
+	// Authz: a non-member gets 403.
+	_, cookieC := registerUser(t, base, "feed-c@test.dev", "passwordpassword", "FeedC")
+	resp, _ = request(t, "GET", base+"/v1/groups/"+groupID+"/activity", nil, cookieC)
+	require.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+	// Bad cursor → 400.
+	resp, _ = request(t, "GET", base+"/v1/groups/"+groupID+"/activity?cursor=not-a-real-cursor", nil, cookieA)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func netMap(balBody map[string]any) map[string]float64 {

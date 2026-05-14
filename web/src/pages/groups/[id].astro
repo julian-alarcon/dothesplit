@@ -10,44 +10,29 @@ import { apiFor } from "@/lib/api/client";
 const { id } = Astro.params as { id: string };
 const api = apiFor(Astro.locals.cookie);
 
-const [groupsRes, expensesRes, balancesRes, categoriesRes, recurringRes, settlementsRes] = await Promise.all([
+const [groupsRes, balancesRes, categoriesRes, recurringRes, activityRes] = await Promise.all([
   api.GET("/v1/groups"),
-  api.GET("/v1/groups/{id}/expenses", { params: { path: { id } } }),
   api.GET("/v1/groups/{id}/balances", { params: { path: { id } } }),
   api.GET("/v1/categories"),
   api.GET("/v1/groups/{id}/recurring-expenses", { params: { path: { id } } }),
-  api.GET("/v1/groups/{id}/settlements", { params: { path: { id } } }),
+  api.GET("/v1/groups/{id}/activity", { params: { path: { id } } }),
 ]);
 
 const group = groupsRes.data?.find((g) => g.id === id);
 if (!group) {
   return Astro.redirect("/groups");
 }
-const expenses = expensesRes.data ?? [];
 const net = balancesRes.data?.net ?? [];
 const simplified = balancesRes.data?.simplified ?? [];
 const recurringTemplates = recurringRes.data ?? [];
 const categories = categoriesRes.data ?? [];
-const settlements = settlementsRes.data ?? [];
+const activity = activityRes.data?.items ?? [];
+const nextCursor = activityRes.data?.next_cursor ?? "";
 
-// Unified activity feed: expenses and settlements together, newest first.
-// Settlements use settled_at as their effective date (matches the "Settle up"
-// form) and don't get a category icon — they render as a transfer row.
-type ExpenseItem = (typeof expenses)[number];
-type SettlementItem = (typeof settlements)[number];
-type ActivityItem =
-  | { kind: "expense"; at: string; expense: ExpenseItem }
-  | { kind: "settlement"; at: string; settlement: SettlementItem };
-
-const activity: ActivityItem[] = [
-  ...expenses.map((e): ActivityItem => ({ kind: "expense", at: e.incurred_at, expense: e })),
-  ...settlements.map((s): ActivityItem => ({ kind: "settlement", at: s.settled_at, settlement: s })),
-].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
-
-// Match expenses to a recurring template by content (no FK linking the two).
-// Same group + description + payer + amount + currency + category + mode is
-// strong enough; collisions in practice would be expenses that look identical
-// to a template, in which case showing the badge is still correct intent.
+// Unified activity feed: paginated server-side via /v1/groups/{id}/activity
+// (50 items by default, with `next_cursor` driving the Load-more island).
+// Cadence (when an expense matches a recurring template) is now resolved
+// server-side and lives on each ActivityItem.
 const cadenceLabels: Record<string, string> = {
   daily: "daily",
   weekly: "weekly",
@@ -55,18 +40,6 @@ const cadenceLabels: Record<string, string> = {
   monthly: "monthly",
   yearly: "yearly",
 };
-const cadenceByExpense = new Map<string, string>();
-for (const e of expenses) {
-  const tpl = recurringTemplates.find(
-    (r) =>
-      r.description === e.description &&
-      r.amount_cents === e.amount_cents &&
-      r.payer_id === e.payer_id &&
-      r.currency === e.currency &&
-      r.category_id === e.category_id,
-  );
-  if (tpl) cadenceByExpense.set(e.id, tpl.cadence);
-}
 const categoryByID = new Map(categories.map((c) => [c.id, c]));
 const otherCategory = categories.find((c) => c.slug === "other");
 const defaultCategory = otherCategory ?? categories[0];
@@ -334,12 +307,12 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     {activity.length === 0 ? (
       <p class="text-sm text-neutral-500">No expenses or settlements yet.</p>
     ) : (
-      <ul class="flex flex-col gap-2">
+      <ul class="flex flex-col gap-2" data-activity-list>
         {activity.map((item) => {
-          if (item.kind === "expense") {
+          if (item.kind === "expense" && item.expense) {
             const e = item.expense;
             const cat = categoryByID.get(e.category_id);
-            const cadence = cadenceByExpense.get(e.id);
+            const cadence = item.cadence;
             return (
               <li>
                 <a
@@ -383,6 +356,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
               </li>
             );
           }
+          if (!item.settlement) return null;
           const s = item.settlement;
           const from = memberByID.get(s.from_user_id);
           const to = memberByID.get(s.to_user_id);
@@ -431,6 +405,19 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
         })}
       </ul>
     )}
+    {nextCursor && (
+      <div class="mt-3 flex justify-center">
+        <button
+          type="button"
+          data-activity-load-more
+          data-group-id={id}
+          data-cursor={nextCursor}
+          class="btn-secondary btn-sm"
+        >
+          Load more
+        </button>
+      </div>
+    )}
   </section>
   </div>
 
@@ -439,5 +426,6 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     import "@/scripts/split-editor.ts";
     import "@/scripts/date-picker.ts";
     import "@/scripts/currency-input.ts";
+    import "@/scripts/activity-load-more.ts";
   </script>
 </Base>
