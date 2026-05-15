@@ -22,6 +22,13 @@ declare namespace App {
      *   3. "UTC" (server fallback)
      */
     timezone: string;
+    /**
+     * Resolved BCP-47 locale for this request, derived from Accept-Language.
+     * Falls back to "en-US". Used for Intl.DisplayNames (currency names),
+     * Intl.NumberFormat, etc. Future i18n work will layer a stored
+     * per-user override on top.
+     */
+    locale: string;
   }
 }
 

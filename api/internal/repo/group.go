@@ -236,6 +236,23 @@ func (r *GroupRepo) IsMember(ctx context.Context, groupID, userID uuid.UUID) (bo
 	return exists, err
 }
 
+// HasActivity reports whether the group has at least one non-deleted expense
+// or settlement. Used to lock the default_currency once a ledger exists - the
+// money columns store amounts in that currency, so swapping it would silently
+// reinterpret historical totals.
+func (r *GroupRepo) HasActivity(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM expenses    WHERE group_id = $1 AND deleted_at IS NULL
+			UNION ALL
+			SELECT 1 FROM settlements WHERE group_id = $1 AND deleted_at IS NULL
+			LIMIT 1
+		)
+	`, groupID).Scan(&exists)
+	return exists, err
+}
+
 // ShareAnyGroup reports whether two users are in at least one group together.
 // Callers of /v1/users/{id}/avatar rely on this for authorization.
 func (r *GroupRepo) ShareAnyGroup(ctx context.Context, a, b uuid.UUID) (bool, error) {

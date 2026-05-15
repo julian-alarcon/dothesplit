@@ -93,6 +93,9 @@ func (s *Server) UpdateGroup(c *gin.Context) {
 	case errors.Is(err, service.ErrBadCurrency), errors.Is(err, service.ErrBadDefaultSplit):
 		writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
 		return
+	case errors.Is(err, service.ErrCurrencyLocked):
+		writeErr(c, http.StatusConflict, "currency_locked", err.Error())
+		return
 	case err != nil:
 		writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
 		return

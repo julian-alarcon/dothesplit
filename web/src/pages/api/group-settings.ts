@@ -26,6 +26,13 @@ export const POST: APIRoute = async ({ request, url, redirect }) => {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
+    if (res.status === 409) {
+      const reason = "Currency is locked once the group has expenses or settlements.";
+      return redirect(
+        `/groups/${groupID}/settings?error=1&reason=${encodeURIComponent(reason)}`,
+        302,
+      );
+    }
     return redirect(`/groups/${groupID}/settings?error=1`, 302);
   }
   return redirect(`/groups/${groupID}/settings`, 302);

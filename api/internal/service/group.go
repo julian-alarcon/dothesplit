@@ -16,6 +16,7 @@ var (
 	ErrInviteeNotFound     = errors.New("invitee is not registered")
 	ErrNotCreator          = errors.New("only the group creator can perform this action")
 	ErrBadCurrency         = errors.New("default_currency must be a 3-letter code")
+	ErrCurrencyLocked      = errors.New("default_currency is locked once the group has expenses or settlements")
 	ErrBadDefaultSplit     = errors.New("invalid default_split")
 	ErrCannotRemoveCreator = errors.New("the group creator cannot leave or be removed; transfer ownership or delete the group")
 	ErrBalanceNotZero      = errors.New("settle up first: removing a member with a non-zero balance would silently drop their share of the ledger")
@@ -97,6 +98,19 @@ func (s *GroupService) Update(ctx context.Context, groupID, actorID uuid.UUID, i
 			return nil, nil, ErrBadCurrency
 		}
 		in.DefaultCurrency = &cur
+		current, err := s.groups.FindByID(ctx, groupID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if cur != current.DefaultCurrency {
+			hasActivity, err := s.groups.HasActivity(ctx, groupID)
+			if err != nil {
+				return nil, nil, err
+			}
+			if hasActivity {
+				return nil, nil, ErrCurrencyLocked
+			}
+		}
 	}
 	if in.DefaultSplit != nil {
 		split := *in.DefaultSplit

@@ -1,7 +1,9 @@
 ---
 import Base from "@/layouts/Base.astro";
+import { COMMON_CURRENCIES, otherCurrencies, currencyLabel } from "@/lib/currencies";
 
-const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK", "NOK", "DKK"];
+const locale = Astro.locals.locale;
+const others = otherCurrencies();
 ---
 
 <Base title="New group">
@@ -16,9 +18,16 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
       <label class="field-select-row">
         <span>Default currency</span>
         <select name="default_currency" class="field-select">
-          {currencyChoices.map((c) => (
-            <option value={c} selected={c === "EUR"}>{c}</option>
-          ))}
+          <optgroup label="Common">
+            {COMMON_CURRENCIES.map((c) => (
+              <option value={c} selected={c === "EUR"}>{currencyLabel(c, locale)}</option>
+            ))}
+          </optgroup>
+          <optgroup label="All currencies">
+            {others.map((c) => (
+              <option value={c}>{currencyLabel(c, locale)}</option>
+            ))}
+          </optgroup>
         </select>
       </label>
       <label class="field">

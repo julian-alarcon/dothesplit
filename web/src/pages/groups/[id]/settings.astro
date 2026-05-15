@@ -3,18 +3,23 @@ import Base from "@/layouts/Base.astro";
 import Avatar from "@/components/Avatar.astro";
 import ConfirmDialog from "@/components/ConfirmDialog.astro";
 import { apiFor } from "@/lib/api/client";
+import { COMMON_CURRENCIES, otherCurrencies, currencyLabel } from "@/lib/currencies";
 
 const { id } = Astro.params as { id: string };
 const api = apiFor(Astro.locals.cookie);
 
-const [groupsRes, balancesRes] = await Promise.all([
+const [groupsRes, balancesRes, activityRes] = await Promise.all([
   api.GET("/v1/groups"),
   api.GET("/v1/groups/{id}/balances", { params: { path: { id } } }),
+  api.GET("/v1/groups/{id}/activity", { params: { path: { id }, query: { limit: 1 } } }),
 ]);
 const group = groupsRes.data?.find((g) => g.id === id);
 if (!group) {
   return Astro.redirect("/groups");
 }
+// The currency is locked once the ledger has any expense or settlement -
+// changing it after that would silently reinterpret stored amount_cents.
+const currencyLocked = (activityRes.data?.items?.length ?? 0) > 0;
 
 const currency = group.default_currency;
 const isCreator = group.created_by === Astro.locals.user?.id;
@@ -41,7 +46,8 @@ const pairPrefill = pairMembers.map((m) => ({
 
 const showSettingsError = Astro.url.searchParams.get("error") === "1";
 const errorReason = Astro.url.searchParams.get("reason") ?? "";
-const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK", "NOK", "DKK"];
+const locale = Astro.locals.locale;
+const others = otherCurrencies();
 ---
 
 <Base title={`${group.name} - settings`} back={{ href: `/groups/${id}`, label: group.name }}>
@@ -78,12 +84,29 @@ const currencyChoices = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK",
       <p class="field-error">Required</p>
       <label class="field-select-row">
         <span>Default currency</span>
-        <select name="default_currency" class="field-select">
-          {currencyChoices.map((c) => (
-            <option value={c} selected={c === currency}>{c}</option>
-          ))}
+        <select
+          name="default_currency"
+          class="field-select"
+          disabled={currencyLocked}
+          aria-describedby={currencyLocked ? "currency-lock-hint" : undefined}
+        >
+          <optgroup label="Common">
+            {COMMON_CURRENCIES.map((c) => (
+              <option value={c} selected={c === currency}>{currencyLabel(c, locale)}</option>
+            ))}
+          </optgroup>
+          <optgroup label="All currencies">
+            {others.map((c) => (
+              <option value={c} selected={c === currency}>{currencyLabel(c, locale)}</option>
+            ))}
+          </optgroup>
         </select>
       </label>
+      {currencyLocked && (
+        <p id="currency-lock-hint" class="-mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+          Currency is fixed after the first expense or settlement. To change it, delete all activity or create a new group.
+        </p>
+      )}
       <button type="submit" class="btn-primary mt-1 self-end">Save</button>
     </form>
   </section>

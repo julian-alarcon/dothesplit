@@ -919,6 +919,54 @@ func TestActivityFeed(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
+// TestCurrencyLock verifies that default_currency can be changed freely on an
+// empty group, but locks (409 currency_locked) once any expense or settlement
+// exists. Same-value PATCHes always pass through.
+func TestCurrencyLock(t *testing.T) {
+	ts := setup(t)
+	base := ts.srv.URL
+
+	userA, cookieA := registerUser(t, base, "lock-a@test.dev", "passwordpassword", "Alice")
+	_, cookieB := registerUser(t, base, "lock-b@test.dev", "passwordpassword", "Bob")
+	_ = cookieB
+
+	// Create the group with EUR.
+	_, gBody := request(t, "POST", base+"/v1/groups",
+		map[string]any{"name": "FX", "default_currency": "EUR"}, cookieA)
+	groupID := gBody["id"].(string)
+
+	// Empty group: switching EUR → USD is allowed.
+	resp, _ := request(t, "PATCH", base+"/v1/groups/"+groupID,
+		map[string]any{"default_currency": "USD"}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Add an expense that anchors the ledger to USD.
+	resp, _ = request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
+		"description":  "Anchor",
+		"amount_cents": 1000,
+		"payer_id":     userA["id"],
+		"mode":         "equal",
+		"splits":       []map[string]any{{"user_id": userA["id"]}},
+	}, cookieA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Now switching USD → GBP must 409.
+	resp, body := request(t, "PATCH", base+"/v1/groups/"+groupID,
+		map[string]any{"default_currency": "GBP"}, cookieA)
+	require.Equal(t, http.StatusConflict, resp.StatusCode)
+	require.Equal(t, "currency_locked", body["code"])
+
+	// Same-value PATCH (no change) must still succeed.
+	resp, _ = request(t, "PATCH", base+"/v1/groups/"+groupID,
+		map[string]any{"default_currency": "USD"}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Renaming alongside still works (the lock only triggers on real changes).
+	resp, _ = request(t, "PATCH", base+"/v1/groups/"+groupID,
+		map[string]any{"name": "FX (renamed)"}, cookieA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func netMap(balBody map[string]any) map[string]float64 {
 	out := map[string]float64{}
 	for _, n := range balBody["net"].([]any) {
