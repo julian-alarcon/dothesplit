@@ -9,6 +9,7 @@ import Avatar from "@/components/Avatar.astro";
 import FaIcon from "@/components/FaIcon.astro";
 import CategoryIcon from "@/components/CategoryIcon.astro";
 import { apiFor } from "@/lib/api/client";
+import { withMonthHeaders } from "@/lib/activity-month";
 
 const { id } = Astro.params as { id: string };
 const cursor = Astro.url.searchParams.get("cursor") ?? "";
@@ -41,8 +42,26 @@ for (const m of group?.members ?? []) nameByUserID.set(m.user_id, m.display_name
 
 const currency = group?.default_currency ?? "EUR";
 const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
+const activityRows = withMonthHeaders(
+  activity,
+  (item) => item.expense?.incurred_at ?? item.settlement?.settled_at ?? "",
+  Astro.locals.locale,
+);
 ---
-{activity.map((item) => {
+{activityRows.map((row) => {
+  if (row.kind === "month-header") {
+    return (
+      <li
+        data-month-header
+        data-month-key={row.key}
+        class="px-1 pt-3 first:pt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+      >
+        {row.label}
+      </li>
+    );
+  }
+  const item = row.item;
   if (item.kind === "expense" && item.expense) {
     const e = item.expense;
     const cat = categoryByID.get(e.category_id);

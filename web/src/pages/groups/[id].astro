@@ -6,6 +6,7 @@ import DatePicker from "@/components/DatePicker.astro";
 import FaIcon from "@/components/FaIcon.astro";
 import CategoryIcon from "@/components/CategoryIcon.astro";
 import { apiFor } from "@/lib/api/client";
+import { withMonthHeaders } from "@/lib/activity-month";
 
 const { id } = Astro.params as { id: string };
 const api = apiFor(Astro.locals.cookie);
@@ -60,6 +61,14 @@ const moneyFmt = new Intl.NumberFormat(undefined, {
 const format = (cents: number) => moneyFmt.format(cents / 100);
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
+// Wrap the activity feed with "Month YYYY" dividers. Each item's
+// occurred_at is the expense.incurred_at or settlement.settled_at.
+const activityRows = withMonthHeaders(
+  activity,
+  (item) => item.expense?.incurred_at ?? item.settlement?.settled_at ?? "",
+  Astro.locals.locale,
+);
 
 // Default the create form to today (UTC) so the rendered <input type="date">
 // matches whatever the user sees in the expense list.
@@ -308,7 +317,19 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
       <p class="text-sm text-neutral-500">No expenses or settlements yet.</p>
     ) : (
       <ul class="flex flex-col gap-2" data-activity-list>
-        {activity.map((item) => {
+        {activityRows.map((row) => {
+          if (row.kind === "month-header") {
+            return (
+              <li
+                data-month-header
+                data-month-key={row.key}
+                class="px-1 pt-3 first:pt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+              >
+                {row.label}
+              </li>
+            );
+          }
+          const item = row.item;
           if (item.kind === "expense" && item.expense) {
             const e = item.expense;
             const cat = categoryByID.get(e.category_id);

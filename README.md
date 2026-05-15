@@ -54,12 +54,9 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Add a new temporal recurring each 30 seconds just for test as this will be deleted
-
 - Themes: contrast
 
-- More currencies
-  - Add a label when there is a new month as part of the list of the expenses page
+- Add a label when there is a new month as part of the list of the Activity section
 - Publishing to GitHub on releases and Github docker registry
 
 - Lock screen below to dont scroll when a modal show up.

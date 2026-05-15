@@ -31,6 +31,15 @@ if (button && list) {
       const trailer = tpl.content.querySelector<HTMLElement>("[data-activity-next-cursor]");
       const nextCursor = trailer?.dataset.activityNextCursor ?? "";
       trailer?.remove();
+      // Drop the fragment's leading month header if it duplicates the last
+      // header already on the page - happens when the next page starts
+      // inside the same calendar month as the previous one.
+      const existingHeaders = list.querySelectorAll<HTMLElement>("[data-month-header]");
+      const lastKey = existingHeaders[existingHeaders.length - 1]?.dataset.monthKey;
+      const firstFragmentHeader = tpl.content.querySelector<HTMLElement>("[data-month-header]");
+      if (lastKey && firstFragmentHeader?.dataset.monthKey === lastKey) {
+        firstFragmentHeader.remove();
+      }
       list.append(tpl.content);
       if (nextCursor) {
         button.dataset.cursor = nextCursor;
