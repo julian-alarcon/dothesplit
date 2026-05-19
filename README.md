@@ -38,15 +38,17 @@ make test           # unit + integration tests
 
 ## Features
 
-Currently shipped and usable:
+See [docs/FEATURES.md](docs/FEATURES.md) for the long-form description. In short:
 
-- **Accounts**: register, log in, log out, change display name, change password (old password required), upload an **8×8 pixel avatar** (generated in-browser from any image; falls back to initials), soft-delete your account with a stable tombstone so shared history stays traceable.
-- **Groups**: create, rename, set a per-group default currency (defaults to EUR), invite existing members by email, delete (creator only; cascades). Settings live on a dedicated `/groups/{id}/settings` page. For 2-member groups, pin a **default percentage split** (e.g. 60/40) that prefills new expenses; auto-cleared when a 3rd member joins.
-- **Expenses**: create with three split modes via a shared in-app editor, **equal**, **exact** (per-member cents), and **percent**,  with live remainder validation and a 2-member "you owe X" framing. Categorize with one of ten seeded categories. Any group member can edit description / amount / category / payer / splits after the fact; splits either rescale proportionally on amount-only edits or are re-resolved when a new mode/split is supplied. Soft-delete (payer or group creator). Inspect the full edit history with who / when / field / old → new, including per-member split diffs.
-- **Balances & settle-up**: net-balance computation over all expenses + settlements, plus a simplified "X owes Y" view. Record settlements directly.
-- **Recurring expenses**: template + background worker that materializes a real expense on each cadence tick (daily / weekly / monthly). Backend API is complete; frontend UI is pending (see Roadmap).
-- **Security**: Argon2id passwords; email stored as HMAC (lookup) + AES-GCM (display) with keys held outside the DB; rate-limited `/v1/auth/*`; strict JSON bodies reject unknown fields; CSP headers with SHA-256 hashes on inline scripts.
-- **API**: OpenAPI 3.0.3 contract at [docs/openapi.yaml](docs/openapi.yaml) is the source of truth; every endpoint lives under `/v1/...` (health probes are the only unversioned routes).
+- **Accounts**: register / login, display name + password change, personal timezone, 8×8 pixel avatars (reducing privacy concerns on GDPR), soft-delete with stable tombstones.
+- **First-run setup**: boot-time token gate so the first user is provably the operator.
+- **Admin**: `/admin` area for users, groups, SMTP and audit, with step-up password prompts for destructive actions.
+- **Groups**: create / rename / delete, per-group currency, invites, leave, transfer ownership, default percent split for 2-member groups.
+- **Expenses**: equal / exact / percent splits, ten categories, custom date, full edit history with per-member split diffs.
+- **Balances & settle-up**: net balances, simplified "X owes Y" view, settlements in a paginated activity feed with detail pages.
+- **Recurring expenses**: daily / weekly / biweekly / monthly / yearly templates materialized by a background worker (UI shipped).
+- **Security**: Argon2id, AES-GCM email at rest, rate-limited auth + setup, strict JSON bodies, hashed-inline CSP.
+- **API**: OpenAPI 3.0.3 contract at [docs/openapi.yaml](docs/openapi.yaml); every business endpoint is under `/v1/...`.
 
 ## Roadmap
 
@@ -54,19 +56,13 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Email SMTP server setup
-  - yaml/toml/conf file?
-
-- Flags for currencies
+- Notification settings per user.
+- Theme switcher in the footer (full dark (current) / light / dark / system) persisted per-device or per-user.
+- Currency flag glyphs in the picker.
+- Publish tagged releases + images to the GitHub Container Registry.
+- TrueNAS deployment recipe (custom docker-compose).
 - Review possible security bypass on my current API/Web setup for a normal user to gain admin rights
-- Publishing to GitHub on releases and Github docker registry
-- Deploy in TrueNAS with custom docker-compose
-
-- User options
-  - Notification settings
-
-- Button in footer Switch dark/light and record it in local opr in user or in both?c
-- Themes: contrast
+- **Password reset** via email (needs SMTP wiring).
 
 ### Medium term
 
@@ -78,10 +74,10 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 - **Import** from CSV
 - **Export** a group's ledger to CSV.
 - **Expense attachments / receipts** (photo or PDF).
+- **Backup**
 
 ### Longer term / ideas
 
-- **Password reset** via email (needs SMTP wiring).
 - **OAuth / passkeys** alongside passwords.
 - **Real-time sync** (push updates via SSE or WebSockets instead of the current polling / refresh-on-focus model).
 - **TLS terminated by Caddy in-compose** as a first-class option, replacing the current "terminate outside the stack" note below.
@@ -102,8 +98,8 @@ DoTheSplit is released under the [MIT License](LICENSE).
 
 Third-party attribution lives in two places:
 
-- [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) — generated list of every direct and transitive Go module and npm package with SPDX license + source link. Includes the Font Awesome CC BY 4.0 attribution.
-- `/credits` route in the running app — human-readable summary linked from every page footer.
+- [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md): generated list of every direct and transitive Go module and npm package with SPDX license + source link. Includes the Font Awesome CC BY 4.0 attribution.
+- `/credits` route in the running app: human-readable summary linked from every page footer.
 
 CycloneDX SBOMs (`sbom/api.cdx.json`, `sbom/worker.cdx.json`, `sbom/web.cdx.json`) are attached as artifacts to every tagged GitHub Release, so auditors can ingest them into Dependency-Track, Trivy, OSV-Scanner, Grype, or any CycloneDX 1.5+ consumer.
 
