@@ -4,9 +4,25 @@
 **/.next
 **/bin
 **/coverage.out
+**/*.test
 .git
 .vscode
 .idea
 .env
 .env.*
 !.env.example
+
+# The web build only needs `web/` and `docs/openapi.yaml`. Excluding the rest
+# keeps the build context small (faster `docker build`, smaller daemon RAM
+# spike) and prevents secrets/source from sneaking into image layers.
+api/
+worker/
+dummydata/
+sbom/
+scripts/
+Makefile
+README.md
+BLUEPRINT.md
+AGENTS.md
+CLAUDE.md
+THIRD_PARTY_LICENSES.md
