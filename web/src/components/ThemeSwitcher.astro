@@ -1,0 +1,18 @@
+---
+// Theme picker. Per-device only — value lives in localStorage (key:
+// dts_theme) and never leaves the browser. Default is "dark"; the dropdown
+// is synced to the stored value by theme-switcher.ts on load.
+---
+
+<label for="theme-picker" class="sr-only">Theme</label>
+<select
+  id="theme-picker"
+  class="field-select"
+  data-theme-picker
+  style="padding-top: 0.25rem; padding-bottom: 0.25rem; font-size: 0.75rem;"
+>
+  <option value="dark">Dark</option>
+  <option value="light">Light</option>
+  <option value="high-contrast">High contrast</option>
+</select>
+<script src="/src/scripts/theme-switcher.ts"></script>

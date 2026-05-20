@@ -3,6 +3,7 @@ import { Font } from "astro:assets";
 import "@/styles/global.css";
 import Avatar from "@/components/Avatar.astro";
 import FaIcon from "@/components/FaIcon.astro";
+import ThemeSwitcher from "@/components/ThemeSwitcher.astro";
 interface Props {
   title: string;
   // Opt-in wider cap for pages that genuinely benefit from a multi-column
@@ -35,29 +36,18 @@ const tzOverride = user?.timezone ?? null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} · DoTheSplit</title>
     <Font cssVariable="--font-inter" preload />
-    <script is:inline>
-      // Set the dts_tz cookie to the device-detected IANA zone on every page
-      // load. SSR reads this cookie next request and renders timestamps in the
-      // user's local time without a flash. Runs before paint to minimize the
-      // window where SSR has to fall back to UTC.
-      (() => {
-        try {
-          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          if (!tz) return;
-          if (!document.cookie.split("; ").some((c) => c === "dts_tz=" + tz)) {
-            document.cookie =
-              "dts_tz=" + encodeURIComponent(tz) + "; Path=/; Max-Age=31536000; SameSite=Lax";
-          }
-        } catch (_) {
-          // Older browsers without Intl resolvedOptions - leave the cookie as-is.
-        }
-      })();
-    </script>
+    {/* Theme boot script: applies the stored theme before paint. Loaded as
+        an external module (not <script is:inline>) so Vite emits it as a
+        hashed asset that the strict CSP `script-src 'self'` allows. Astro
+        does not auto-hash raw <script is:inline> blocks placed in .astro
+        sources, so inlining the body would silently get blocked. */}
+    <script src="/src/scripts/theme-boot.ts"></script>
+    <script src="/src/scripts/tz-cookie.ts"></script>
     <script src="/src/scripts/local-time.ts"></script>
     <script src="/src/scripts/dialog-scroll-lock.ts"></script>
   </head>
   <body class="flex min-h-screen flex-col">
-    <header class="border-b border-neutral-200 bg-white/70 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/70">
+    <header class="border-b border-border bg-card/70 backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <a href={user ? "/groups" : "/"} class="text-lg font-semibold">DoTheSplit</a>
         {user ? (
@@ -105,22 +95,25 @@ const tzOverride = user?.timezone ?? null;
     <main class:list={["mx-auto w-full flex-1 px-2 py-2", containerClass]}>
       <slot />
     </main>
-    <footer class="border-t border-neutral-200 bg-white/70 py-3 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/70 dark:text-neutral-400">
-      <div class="mx-auto max-w-6xl px-4">
-        DoTheSplit ·
-        {buildCommit === "dev" ? (
-          <span>build <code class="font-mono">dev</code></span>
-        ) : (
-          <span>
-            build <a
-              href={`https://github.com/julian-alarcon/dothesplit/commit/${buildCommit}`}
-              class="font-mono hover:underline"
-              rel="noopener noreferrer"
-              target="_blank"
-            >{buildCommit}</a>
-          </span>
-        )}
-        · <a href="/credits" class="hover:underline">Credits</a>
+    <footer class="border-t border-border bg-card/70 py-3 text-xs text-muted-foreground">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4">
+        <span>
+          DoTheSplit ·
+          {buildCommit === "dev" ? (
+            <span>build <code class="font-mono">dev</code></span>
+          ) : (
+            <span>
+              build <a
+                href={`https://github.com/julian-alarcon/dothesplit/commit/${buildCommit}`}
+                class="font-mono hover:underline"
+                rel="noopener noreferrer"
+                target="_blank"
+              >{buildCommit}</a>
+            </span>
+          )}
+          · <a href="/credits" class="hover:underline">Credits</a>
+        </span>
+        <ThemeSwitcher />
       </div>
     </footer>
   </body>

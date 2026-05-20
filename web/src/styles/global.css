@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
+/* Activate dark: utilities for the dark and high-contrast themes. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, [data-theme="high-contrast"], [data-theme="high-contrast"] *));
+
 /* --font-inter is injected by Astro's local font provider (see astro.config.mjs).
    Tailwind v4 preflight resolves the body font-family from --default-font-family
    (not --font-sans), so we override both: --font-sans powers `font-sans` utilities
    and --default-font-family powers the implicit body font. font-mono stays at
-   Tailwind's default. */
+   Tailwind's default.
+
+   The --color-* aliases below let semantic Tailwind utilities like bg-card and
+   border-border resolve to the active theme's CSS custom properties. */
 @theme {
   --default-font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
+/* Light theme is the default — applied via :root so it also wins if the
+   boot script ever fails to set data-theme on <html>. */
 :root {
-  color-scheme: light dark;
-  /* neutral-500 stays >= 4.5:1 against both white and near-black bodies,
-     comfortably clearing WCAG 1.4.11 (3:1 for non-text UI components). */
+  color-scheme: light;
+  --background: oklch(0.9751 0.0127 244.2507);
+  --foreground: oklch(0.3729 0.0306 259.7328);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.7227 0.1920 149.5793);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9514 0.0250 236.8242);
+  --secondary-foreground: oklch(0.4461 0.0263 256.8018);
+  --muted: oklch(0.967 0.0029 264.5419);
+  --muted-foreground: oklch(0.551 0.0234 264.3637);
+  --accent: oklch(0.9505 0.0507 163.0508);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --border: oklch(0.9276 0.0058 264.5313);
+  --input: var(--border);
+  --ring: var(--primary);
+  --radius: 0.5rem;
+
+  /* Form-field tones derived from the semantic tokens. neutral-500 stays
+     >= 4.5:1 against both white and near-black bodies, comfortably clearing
+     WCAG 1.4.11 (3:1 for non-text UI components). */
   --field-color: var(--color-neutral-500);
-  --field-focus: var(--color-neutral-900);
+  --field-focus: var(--foreground);
 
   /* Per-category-group icon tints. OKLCH gives perceptually-uniform
-     brightness across hues so no group looks louder than another. The
-     dark-mode variants below lift lightness ~15% to clear contrast on
-     the bg-neutral-900 panels icons render against. */
+     brightness across hues so no group looks louder than another. */
   --cat-entertainment: oklch(60% 0.18 295);
   --cat-food-drink:    oklch(62% 0.15 30);
   --cat-home:          oklch(55% 0.12 145);
@@ -30,13 +75,103 @@
   --cat-no-category:   oklch(65% 0 0);
 }
 
+/* New OKLCH-driven dark theme — deep blue-grey background with a green primary.
+   The --color-neutral-* overrides remap Tailwind's built-in true-grey ramp
+   (theme.css :255-265) to a cohesive blue-tinted scale anchored on the
+   semantic tokens below. Effect: every existing `dark:bg-neutral-900` /
+   `dark:text-neutral-100` / `dark:border-neutral-800` class scattered through
+   .astro pages and components automatically picks up the tinted palette
+   without per-file edits. high-contrast keeps Tailwind's defaults so the AMOLED
+   look users had before is preserved. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-neutral-50:  oklch(0.985 0.004 260);
+  --color-neutral-100: oklch(0.950 0.006 260);
+  --color-neutral-200: oklch(0.872 0.009 258);
+  --color-neutral-300: oklch(0.780 0.012 260);
+  --color-neutral-400: oklch(0.712 0.013 286);
+  --color-neutral-500: oklch(0.551 0.023 264);
+  --color-neutral-600: oklch(0.446 0.026 257);
+  --color-neutral-700: oklch(0.373 0.031 260);
+  --color-neutral-800: oklch(0.335 0.033 261);
+  --color-neutral-900: oklch(0.280 0.037 260);
+  --color-neutral-950: oklch(0.165 0.040 266);
+
+  --background: var(--color-neutral-950);
+  --foreground: var(--color-neutral-200);
+  --card: var(--color-neutral-900);
+  --card-foreground: var(--foreground);
+  --popover: var(--color-neutral-900);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.7729 0.1535 163.2231);
+  --primary-foreground: var(--color-neutral-950);
+  --secondary: var(--color-neutral-800);
+  --secondary-foreground: var(--color-neutral-400);
+  --muted: var(--color-neutral-900);
+  --muted-foreground: var(--color-neutral-500);
+  --accent: var(--color-neutral-700);
+  --accent-foreground: var(--color-neutral-400);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --border: var(--color-neutral-600);
+  --input: var(--border);
+  --ring: var(--primary);
+
+  --field-color: var(--border);
+  --field-focus: var(--foreground);
+}
+
+/* Shared dark-surface category tints. Lifted ~15% over the light-mode
+   values for legibility against bg-neutral-950 / -900 panels. Applied to
+   both dark and high-contrast since both render on the same darkness range. */
+:root[data-theme="dark"],
+:root[data-theme="high-contrast"] {
+  --cat-entertainment: oklch(75% 0.16 295);
+  --cat-food-drink:    oklch(75% 0.13 30);
+  --cat-home:          oklch(72% 0.12 145);
+  --cat-life:          oklch(75% 0.13 220);
+  --cat-transport:     oklch(75% 0.13 60);
+  --cat-utilities:     oklch(72% 0.10 250);
+  --cat-no-category:   oklch(80% 0 0);
+}
+
+/* high-contrast = the AMOLED-y look that was the only dark mode before this
+   preference existed. Mapped to the existing Tailwind neutral palette so
+   users who picked "Full dark" see exactly what they used to in dark mode. */
+:root[data-theme="high-contrast"] {
+  color-scheme: dark;
+  --background: var(--color-neutral-950);
+  --foreground: var(--color-neutral-100);
+  --card: var(--color-neutral-900);
+  --card-foreground: var(--foreground);
+  --popover: var(--color-neutral-900);
+  --popover-foreground: var(--foreground);
+  --primary: var(--color-neutral-100);
+  --primary-foreground: var(--color-neutral-900);
+  --secondary: var(--color-neutral-800);
+  --secondary-foreground: var(--color-neutral-200);
+  --muted: var(--color-neutral-900);
+  --muted-foreground: var(--color-neutral-400);
+  --accent: var(--color-neutral-800);
+  --accent-foreground: var(--color-neutral-100);
+  --destructive: var(--color-red-600);
+  --border: var(--color-neutral-800);
+  --input: var(--color-neutral-700);
+  --ring: var(--color-neutral-500);
+
+  --field-color: var(--color-neutral-500);
+  --field-focus: var(--color-neutral-100);
+}
+
 html,
 body {
   height: 100%;
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+  background: var(--background);
+  color: var(--foreground);
+  @apply antialiased;
 }
 
 /* Background-scroll lock is handled by web/src/scripts/dialog-scroll-lock.ts
@@ -48,22 +183,6 @@ body {
 dialog[open],
 dialog[open] .overflow-auto {
   overscroll-behavior: contain;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --field-focus: var(--color-neutral-100);
-    --cat-entertainment: oklch(75% 0.16 295);
-    --cat-food-drink:    oklch(75% 0.13 30);
-    --cat-home:          oklch(72% 0.12 145);
-    --cat-life:          oklch(75% 0.13 220);
-    --cat-transport:     oklch(75% 0.13 60);
-    --cat-utilities:     oklch(72% 0.10 250);
-    --cat-no-category:   oklch(95% 0 0);
-  }
-  body {
-    @apply bg-neutral-950 text-neutral-100;
-  }
 }
 
 /* Per-slug rotation override for CategoryIcon's <svg>. The `other` slug
@@ -105,18 +224,13 @@ svg[data-icon-slug="other"] {
   display: flex;
   align-items: stretch;
   padding-top: 0.875rem;
-  background: var(--color-white);
+  background: var(--card);
+  color: var(--card-foreground);
   border-radius: 0.375rem;
-  color-scheme: light dark;
   /* Use an inset box-shadow for the bottom line instead of border-bottom so
      it respects border-radius cleanly (no 1px tail past the rounded corners). */
   box-shadow: inset 0 -2px 0 0 var(--field-color);
   transition: box-shadow 120ms ease;
-}
-@media (prefers-color-scheme: dark) {
-  .field {
-    background: var(--color-neutral-950);
-  }
 }
 .field:focus-within {
   box-shadow: inset 0 -2px 0 0 var(--field-focus);
@@ -137,15 +251,10 @@ svg[data-icon-slug="other"] {
   top: 1.4rem;
   font-size: 0.875rem;
   line-height: 1;
-  color: var(--color-neutral-600);
+  color: var(--muted-foreground);
   pointer-events: none;
   transform-origin: 0 0;
   transition: transform 150ms ease, color 150ms ease;
-}
-@media (prefers-color-scheme: dark) {
-  .field-label {
-    color: var(--color-neutral-300);
-  }
 }
 .field:focus-within .field-label,
 .field .field-input:not(:placeholder-shown) ~ .field-label,
@@ -189,7 +298,7 @@ svg[data-icon-slug="other"] {
   color: transparent;
 }
 .field[data-has-stored] .field-input::placeholder {
-  color: var(--color-neutral-500);
+  color: var(--muted-foreground);
 }
 
 /* Strip browser-native number spinners on every numeric field-input. */
@@ -205,11 +314,12 @@ svg[data-icon-slug="other"] {
 /* Compact inline numeric input. Same bottom-line treatment as .field-input
    but without the wrapper or floating label - used for small quantity
    entry next to an external sibling label (split editor rows, default-split
-   percentages, etc.). Panel-matching background (white/neutral-950) so it
-   reads as a real input field, not a transparent gap. Bottom border becomes
-   the page's foreground tone on focus, mirroring .field's focus indicator. */
+   percentages, etc.). Panel-matching background so it reads as a real input
+   field, not a transparent gap. Bottom border becomes the page's foreground
+   tone on focus, mirroring .field's focus indicator. */
 .field-input-num {
-  background: var(--color-white);
+  background: var(--card);
+  color: var(--card-foreground);
   border: 0;
   border-radius: 0.375rem;
   box-shadow: inset 0 -2px 0 0 var(--field-color);
@@ -217,16 +327,9 @@ svg[data-icon-slug="other"] {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
-  color: inherit;
   outline: none;
   transition: box-shadow 120ms ease;
   appearance: textfield;
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  .field-input-num {
-    background: var(--color-neutral-950);
-  }
 }
 .field-input-num:focus {
   box-shadow: inset 0 -2px 0 0 var(--field-focus);
@@ -250,37 +353,39 @@ svg[data-icon-slug="other"] {
   @apply flex flex-col gap-1 text-sm;
 }
 .field-select {
-  @apply rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm;
+  @apply rounded-md px-3 py-2 text-sm;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
   /* Strip OS chevron / spinner / ripple on the closed control. The open
-     popup stays native (no spec-compliant way to style it on Android), but
-     color-scheme below keeps its tone aligned with our theme. */
+     popup stays native (no spec-compliant way to style it on Android). */
   appearance: none;
-  color-scheme: light dark;
-  /* FA Solid chevron-down (matches the FA icons used elsewhere in the UI).
-     currentColor doesn't resolve inside url() data-URIs, so we hardcode
-     neutral-700 here and override below for dark mode. */
+  /* FA Solid chevron-down. currentColor doesn't resolve inside url() data-URIs
+     for SVG fills, but recent Chromium/Firefox support it via the foreignObject
+     trick — we keep the literal hex fallbacks split per theme below. */
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23404040' d='M297.4 470.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 402.7L150.6 233.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.625rem center;
   background-size: 0.875rem 0.875rem;
   padding-right: 2rem;
 }
-@media (prefers-color-scheme: dark) {
-  .field-select {
-    @apply border-neutral-700 bg-neutral-950;
-    /* Same path with neutral-300 fill for visibility on dark surface. */
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23d4d4d4' d='M297.4 470.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 402.7L150.6 233.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/></svg>");
-  }
+:root[data-theme="dark"] .field-select,
+:root[data-theme="high-contrast"] .field-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23d4d4d4' d='M297.4 470.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 402.7L150.6 233.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/></svg>");
 }
 .field-select:user-invalid {
   border-color: var(--color-red-600);
 }
 
 /* Currency-aware text input: typed value sits flush right, with the live
-   formatted preview taking over on blur (handled by web/src/scripts/currency-input.ts). */
+   formatted preview taking over on blur (handled by web/src/scripts/currency-input.ts).
+   Bumped to 18px (vs the default field-input 14px) so currency amounts —
+   the most scanned values on the add/edit-expense and settlement forms —
+   read clearly without zooming on mobile. */
 .field-input-currency {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-size: 1.125rem;
 }
 
 /* Square category trigger button. Sits next to the description .field on the
@@ -289,8 +394,13 @@ svg[data-icon-slug="other"] {
    widths before resolving stretched height, so an aspect-ratio-based width
    collapses to the emoji's intrinsic size. */
 .field-category-trigger {
-  @apply flex h-[50px] w-[50px] shrink-0 cursor-pointer items-center justify-center rounded-md border border-neutral-300 bg-white leading-none transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:focus-visible:ring-neutral-500;
-  color-scheme: light dark;
+  @apply flex h-[50px] w-[50px] shrink-0 cursor-pointer items-center justify-center rounded-md leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+}
+.field-category-trigger:hover {
+  background: var(--muted);
 }
 
 /* Single row inside the category dialog list. Reads as a tappable list item:
@@ -305,19 +415,13 @@ svg[data-icon-slug="other"] {
 .field-category-group {
   position: sticky;
   top: 0;
-  background: var(--color-white);
+  background: var(--popover);
+  color: var(--muted-foreground);
   padding: 0.5rem 0.75rem 0.25rem;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-neutral-500);
-}
-@media (prefers-color-scheme: dark) {
-  .field-category-group {
-    background: var(--color-neutral-900);
-    color: var(--color-neutral-400);
-  }
 }
 .field-category-group:not(:first-child) {
   margin-top: 0.25rem;
@@ -335,23 +439,44 @@ svg[data-icon-slug="other"] {
 .btn-secondary,
 .btn-danger,
 .btn-danger-outline {
-  @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-neutral-500;
+  @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50;
+  --tw-ring-color: var(--ring);
 }
 
 .btn-primary {
-  @apply border border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-700 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid var(--primary);
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(0.92);
 }
 
 .btn-secondary {
-  @apply border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--muted);
 }
 
 .btn-danger {
-  @apply border border-red-600 bg-red-600 text-white hover:bg-red-700;
+  background: var(--destructive);
+  color: oklch(1 0 0);
+  border: 1px solid var(--destructive);
+}
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
 }
 
 .btn-danger-outline {
-  @apply border border-red-600 bg-white text-red-600 hover:bg-red-50 dark:border-red-500 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-950;
+  background: var(--card);
+  color: var(--destructive);
+  border: 1px solid var(--destructive);
+}
+.btn-danger-outline:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--destructive) 12%, var(--card));
 }
 
 /* Compact size modifier, pairs with any of the four colour variants. */
@@ -363,7 +488,14 @@ svg[data-icon-slug="other"] {
    with the colour ones since the calendar prev/next + compact trigger all
    want the same secondary-like surface. */
 .btn-icon {
-  @apply inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus-visible:ring-neutral-500;
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2;
+  background: var(--card);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  --tw-ring-color: var(--ring);
+}
+.btn-icon:hover:not(:disabled) {
+  background: var(--muted);
 }
 
 /* Switch: a styled native checkbox rendered as a horizontal toggle. The real
@@ -384,25 +516,31 @@ svg[data-icon-slug="other"] {
      adjacent label wraps onto multiple lines in a narrow viewport — flex
      children can otherwise be compressed to fit, which produces the
      uneven track widths visible on mobile. */
-  @apply relative inline-block h-5 w-9 shrink-0 rounded-full border border-neutral-300 bg-neutral-200 transition-colors dark:border-neutral-700 dark:bg-neutral-800;
+  @apply relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors;
+  background: var(--muted);
+  border: 1px solid var(--border);
 }
 
 .toggle-track::after {
   content: "";
-  @apply absolute left-0.5 top-0.5 block h-4 w-4 rounded-full bg-white shadow transition-transform dark:bg-neutral-300;
+  @apply absolute left-0.5 top-0.5 block h-4 w-4 rounded-full shadow transition-transform;
+  background: var(--card);
 }
 
 .toggle-input:checked + .toggle-track {
-  @apply border-neutral-900 bg-neutral-900 dark:border-neutral-100 dark:bg-neutral-100;
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .toggle-input:checked + .toggle-track::after {
   transform: translateX(1rem);
-  @apply bg-white dark:bg-neutral-900;
+  background: var(--primary-foreground);
 }
 
 .toggle-input:focus-visible + .toggle-track {
-  @apply ring-2 ring-neutral-400 ring-offset-2 ring-offset-white dark:ring-neutral-500 dark:ring-offset-neutral-900;
+  @apply ring-2 ring-offset-2;
+  --tw-ring-color: var(--ring);
+  --tw-ring-offset-color: var(--background);
 }
 
 .toggle-input:disabled + .toggle-track {
