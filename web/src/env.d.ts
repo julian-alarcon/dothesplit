@@ -13,7 +13,6 @@ declare namespace App {
       week_start: 0 | 1;
       timezone?: string | null;
       is_admin?: boolean;
-      must_change_password?: boolean;
     } | null;
     /** Raw cookie header forwarded to the API on server-side fetches. */
     cookie: string;

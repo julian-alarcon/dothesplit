@@ -1,0 +1,144 @@
+---
+import Base from "@/layouts/Base.astro";
+
+const email = Astro.url.searchParams.get("email") ?? "";
+const from = Astro.url.searchParams.get("from"); // "account" when triggered from /account/password
+const showError = Astro.url.searchParams.get("error");
+// Standalone visits with no ?email= are meaningless: there's no flow in
+// progress to confirm. Send the user through /forgot to get an email,
+// instead of showing an empty form they can't act on.
+if (!email) {
+  return Astro.redirect("/forgot");
+}
+
+const errorMsg =
+  showError === "invalid_code"
+    ? "That code didn't match. Try again or request a new one."
+    : showError === "code_expired"
+      ? "Your code expired. Request a new one and try again."
+      : showError === "too_many_attempts"
+        ? "Too many attempts. Request a new code and try again."
+        : showError === "mismatch"
+          ? "The new password and the confirmation don't match."
+          : showError === "length"
+            ? "New password must be at least 10 characters."
+            : showError
+              ? "Could not reset the password. Please try again."
+              : null;
+---
+
+<Base title="Set a new password">
+  <div class="mx-auto max-w-sm">
+    <h1 class="mb-2 text-2xl font-semibold">Check your inbox</h1>
+    <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+      {from === "account"
+        ? "We sent a 6-digit code to your email address. Paste it below along with the new password."
+        : "If that email is registered, we sent a 6-digit code. Paste it below along with the new password."}
+    </p>
+
+    {errorMsg && (
+      <p
+        role="status"
+        aria-live="polite"
+        class="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
+        {errorMsg}
+      </p>
+    )}
+
+    <form
+      method="POST"
+      action="/api/reset"
+      class="flex flex-col gap-3 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+    >
+      <label class="field">
+        <input
+          type="email"
+          name="email"
+          required
+          autocomplete="email"
+          placeholder=" "
+          class="field-input"
+          value={email}
+          readonly={!!email}
+        />
+        <span class="field-label" data-required>Email</span>
+      </label>
+      <p class="field-error">Enter a valid email address</p>
+
+      <label class="field">
+        <input
+          name="code"
+          required
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxlength="6"
+          minlength="6"
+          placeholder=" "
+          class="field-input tracking-[0.4em] text-center"
+          autofocus
+        />
+        <span class="field-label" data-required>6-digit code</span>
+      </label>
+      <p class="field-error">Enter the 6-digit code from your email</p>
+
+      <label class="field">
+        <input
+          type="password"
+          name="new_password"
+          required
+          minlength="10"
+          autocomplete="new-password"
+          placeholder=" "
+          class="field-input"
+          data-new-password
+        />
+        <span class="field-label" data-required>New password</span>
+      </label>
+      <p class="field-error">Password must be at least 10 characters</p>
+
+      <label class="field">
+        <input
+          type="password"
+          name="password_confirmation"
+          required
+          minlength="10"
+          autocomplete="new-password"
+          placeholder=" "
+          class="field-input"
+          data-confirm-password
+        />
+        <span class="field-label" data-required>Password confirmation</span>
+      </label>
+      <p class="field-error">Both passwords must match</p>
+
+      <button type="submit" class="btn-primary mt-2 self-end">Set new password</button>
+    </form>
+
+    <form method="POST" action="/api/forgot" class="mt-4">
+      <input type="hidden" name="email" value={email} />
+      <button
+        type="submit"
+        class="rounded-md text-sm underline text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+      >
+        Send a new code
+      </button>
+    </form>
+  </div>
+
+  <script>
+    // Live confirmation match — same pattern as /account/password.
+    const newPwd = document.querySelector<HTMLInputElement>("[data-new-password]");
+    const confirmPwd = document.querySelector<HTMLInputElement>("[data-confirm-password]");
+    if (newPwd && confirmPwd) {
+      const sync = () => {
+        confirmPwd.setCustomValidity(
+          confirmPwd.value === newPwd.value ? "" : "Both passwords must match",
+        );
+      };
+      newPwd.addEventListener("input", sync);
+      confirmPwd.addEventListener("input", sync);
+    }
+  </script>
+</Base>

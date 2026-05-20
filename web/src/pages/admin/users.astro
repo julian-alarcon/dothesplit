@@ -35,10 +35,14 @@ function fmtDate(s: string) {
   {error && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Could not load users.</p>}
   {created && <p class="rounded bg-green-50 px-3 py-2 text-sm text-green-800 mb-4 dark:bg-green-950 dark:text-green-200">User created.</p>}
   {deleted && <p class="rounded bg-green-50 px-3 py-2 text-sm text-green-800 mb-4 dark:bg-green-950 dark:text-green-200">User soft-deleted.</p>}
-  {createErr && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Could not create user (email may already be registered).</p>}
+  {createErr === "smtp" && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Configure SMTP first — invitations are sent by email so the user can set their own password.</p>}
+  {createErr && createErr !== "smtp" && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Could not create user (email may already be registered).</p>}
 
   <section class="mb-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
     <h2 class="text-lg font-medium mb-3">Add user</h2>
+    <p class="-mt-1 mb-3 text-xs text-neutral-600 dark:text-neutral-400">
+      The user receives an email with a 6-digit code to set their own password.
+    </p>
     <form method="POST" action="/api/admin/users" class="grid gap-3">
       <label class="field">
         <input name="email" type="email" required class="field-input" placeholder=" " />
@@ -51,13 +55,6 @@ function fmtDate(s: string) {
         <span class="field-label" data-required>Display name</span>
       </label>
       <p class="field-error">Required</p>
-
-      <label class="field">
-        <input name="password" type="password" required minlength="10" class="field-input" placeholder=" " />
-        <span class="field-label" data-required>Initial password</span>
-      </label>
-      <p class="field-error">Password must be at least 10 characters</p>
-      <p class="-mt-1 text-xs text-neutral-600 dark:text-neutral-400">Minimum 10 characters. The user is forced to change it on first login.</p>
 
       <label class="field-select-row">
         <span class="text-sm">Role</span>
@@ -118,7 +115,6 @@ function fmtDate(s: string) {
                   <span class="rounded px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800">{u.role}</span>
                   <span class="ml-2">created {fmtDate(u.created_at)}</span>
                   {u.deleted_at && <span class="ml-2 text-red-600 dark:text-red-400">deleted {fmtDate(u.deleted_at)}</span>}
-                  {u.must_change_password && <span class="ml-2 text-amber-700 dark:text-amber-300">must change password</span>}
                 </div>
               </div>
               <span class="ml-auto text-neutral-400" aria-hidden="true">›</span>

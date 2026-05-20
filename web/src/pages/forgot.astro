@@ -1,0 +1,48 @@
+---
+import Base from "@/layouts/Base.astro";
+
+// /forgot is reachable while logged in or out — the redirect to /reset on
+// submit is what matters, the page itself is just a single email field.
+const presetEmail = Astro.url.searchParams.get("email") ?? "";
+---
+
+<Base title="Reset your password">
+  <div class="mx-auto max-w-sm">
+    <h1 class="mb-2 text-2xl font-semibold">Reset your password</h1>
+    <p class="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+      Type your email and we'll send you a 6-digit code to set a new password.
+      If the email is registered, the code will arrive in a moment.
+    </p>
+
+    <form
+      method="POST"
+      action="/api/forgot"
+      class="flex flex-col gap-3 rounded-md border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+    >
+      <label class="field">
+        <input
+          type="email"
+          name="email"
+          required
+          autocomplete="email"
+          placeholder=" "
+          class="field-input"
+          value={presetEmail}
+          autofocus
+        />
+        <span class="field-label" data-required>Email</span>
+      </label>
+      <p class="field-error">Enter a valid email address</p>
+      <button type="submit" class="btn-primary mt-2 self-end">Send code</button>
+    </form>
+
+    <p class="mt-4 text-sm">
+      <a
+        href="/login"
+        class="rounded-md underline text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+      >
+        Back to login
+      </a>
+    </p>
+  </div>
+</Base>

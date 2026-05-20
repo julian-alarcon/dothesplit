@@ -2,6 +2,12 @@
 import Base from "@/layouts/Base.astro";
 
 const email = Astro.url.searchParams.get("email") ?? "";
+// Standalone visits with no ?email= are meaningless: there's no flow in
+// progress to verify. Bounce visitors back to login (or /groups if they're
+// already authenticated) instead of showing an empty form.
+if (!email) {
+  return Astro.redirect(Astro.locals.user ? "/groups" : "/login");
+}
 const showError = Astro.url.searchParams.get("error");
 const showResent = Astro.url.searchParams.get("resent") === "1";
 const errorMsg =
@@ -54,7 +60,7 @@ const errorMsg =
           required
           inputmode="numeric"
           autocomplete="one-time-code"
-          pattern="\d{6}"
+          pattern="[0-9]{6}"
           maxlength="6"
           minlength="6"
           placeholder=" "
