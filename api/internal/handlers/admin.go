@@ -319,6 +319,76 @@ func (s *Server) AdminTestSmtp(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+// AdminRevealSmtpPassword returns the stored SMTP password as cleartext.
+// Admin-only and explicitly audit-logged: revealing a credential is the kind
+// of action ops should be able to discover later in the audit feed, both for
+// incident response and for regular review.
+func (s *Server) AdminRevealSmtpPassword(c *gin.Context) {
+	actor := middleware.User(c)
+	if actor == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	pw, err := s.Smtp.RevealPassword(c.Request.Context())
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			writeErr(c, http.StatusNotFound, "not_found", "smtp not configured")
+			return
+		}
+		writeErr(c, http.StatusInternalServerError, "internal", "reveal smtp password failed")
+		return
+	}
+	if pw == "" {
+		writeErr(c, http.StatusNotFound, "not_found", "no password stored")
+		return
+	}
+	_ = s.Audit.Insert(c.Request.Context(), nil, &repo.AuditEntry{
+		ActorUserID: actor.ID,
+		Action:      "admin_view_smtp_password",
+		IP:          strPtrOrNil(c.ClientIP()),
+		UserAgent:   strPtrOrNil(c.Request.UserAgent()),
+		Success:     true,
+	})
+	c.JSON(http.StatusOK, apigen.SmtpPasswordResponse{Password: pw})
+}
+
+// AdminSendSmtpTestEmail dispatches a real plain-text test email to the
+// admin's own address, synchronously. Bypasses the outbox so SMTP errors
+// surface immediately in the UI instead of disappearing into worker retries.
+func (s *Server) AdminSendSmtpTestEmail(c *gin.Context) {
+	actor := middleware.User(c)
+	if actor == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	ok, err := s.Mailer.IsConfigured(c.Request.Context())
+	if err != nil {
+		writeErr(c, http.StatusInternalServerError, "internal", "load smtp config failed")
+		return
+	}
+	if !ok {
+		writeErr(c, http.StatusNotFound, "not_found", "smtp not configured")
+		return
+	}
+	out := apigen.SmtpTestResponse{Success: true}
+	if err := s.Mailer.SendNow(c.Request.Context(), actor.Email, "smtp_test", service.TemplateVars{
+		DisplayName: actor.DisplayName,
+		WebOrigin:   s.Cfg.WebOrigin,
+	}); err != nil {
+		out.Success = false
+		msg := err.Error()
+		out.Error = &msg
+	}
+	_ = s.Audit.Insert(c.Request.Context(), nil, &repo.AuditEntry{
+		ActorUserID: actor.ID,
+		Action:      "admin_send_smtp_test",
+		IP:          strPtrOrNil(c.ClientIP()),
+		UserAgent:   strPtrOrNil(c.Request.UserAgent()),
+		Success:     out.Success,
+	})
+	c.JSON(http.StatusOK, out)
+}
+
 func (s *Server) AdminListAudit(c *gin.Context) {
 	limit, offset := parsePagination(c)
 	action := c.Query("action")

@@ -57,8 +57,13 @@ func main() {
 	auditRepo := repo.NewAuditRepo(pool)
 	smtpRepo := repo.NewSmtpRepo(pool)
 	setupRepo := repo.NewSetupRepo(pool)
-	auth := service.NewAuthService(pool, users, sessions, auditRepo, setupRepo, email, cfg.PasswordPepper,
+	verificationRepo := repo.NewVerificationRepo(pool)
+	outboxRepo := repo.NewEmailOutboxRepo(pool)
+	mailerSvc := service.NewMailerService(smtpRepo, outboxRepo, email, logger)
+	auth := service.NewAuthService(pool, users, sessions, auditRepo, verificationRepo, mailerSvc, setupRepo, email, cfg.PasswordPepper,
 		time.Duration(cfg.SessionTTLDay)*24*time.Hour)
+	notificationSvc := service.NewNotificationService(users, mailerSvc, email)
+
 	meSvc := service.NewMeService(users, sessions, email, cfg.PasswordPepper)
 	categorySvc := service.NewCategoryService(categories)
 	groupSvc := service.NewGroupService(groups, users, balances, email)
@@ -70,6 +75,12 @@ func main() {
 	adminSvc := service.NewAdminService(pool, users, groups, sessions, auditRepo, email, cfg.PasswordPepper)
 	smtpSvc := service.NewSmtpService(smtpRepo, email)
 	setupSvc := service.NewSetupService(pool, setupRepo, auth, auditRepo)
+
+	// Wire notifications into the services that produce them. The hook is
+	// optional so tests can construct services without a real mailer.
+	groupSvc.SetNotifications(notificationSvc)
+	settlementSvc.SetNotifications(users, notificationSvc)
+	recurringSvc.SetNotifications(users, notificationSvc)
 
 	// First-run setup: rotate the install token on every boot until consumed.
 	// The cleartext is logged once as a warning so the operator can grab it
@@ -89,20 +100,22 @@ func main() {
 
 	srv := &handlers.Server{
 		Cfg: cfg, Pool: pool,
-		Auth:        auth,
-		MeSvc:       meSvc,
-		Groups:      groupSvc,
-		Categories:  categorySvc,
-		Expenses:    expenseSvc,
-		Balances:    balanceSvc,
-		Settlements: settlementSvc,
-		Recurring:   recurringSvc,
-		Activity:    activitySvc,
-		Admin:       adminSvc,
-		Smtp:        smtpSvc,
-		Setup:       setupSvc,
-		Users:       users,
-		Audit:       auditRepo,
+		Auth:          auth,
+		MeSvc:         meSvc,
+		Groups:        groupSvc,
+		Categories:    categorySvc,
+		Expenses:      expenseSvc,
+		Balances:      balanceSvc,
+		Settlements:   settlementSvc,
+		Recurring:     recurringSvc,
+		Activity:      activitySvc,
+		Admin:         adminSvc,
+		Smtp:          smtpSvc,
+		Setup:         setupSvc,
+		Mailer:        mailerSvc,
+		Notifications: notificationSvc,
+		Users:         users,
+		Audit:         auditRepo,
 	}
 	h := server.New(srv)
 

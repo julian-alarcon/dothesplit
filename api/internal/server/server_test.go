@@ -113,12 +113,16 @@ func setup(t *testing.T) *testStack {
 	auditRepo := repo.NewAuditRepo(pool)
 	smtpRepo := repo.NewSmtpRepo(pool)
 	setupRepo := repo.NewSetupRepo(pool)
+	verificationRepo := repo.NewVerificationRepo(pool)
+	outboxRepo := repo.NewEmailOutboxRepo(pool)
 
 	sessionRepo := repo.NewSessionRepo(pool)
 	ttl := time.Duration(cfg.SessionTTLDay) * 24 * time.Hour
 	groupSvc := service.NewGroupService(groups, users, balances, email)
-	authSvc := service.NewAuthService(pool, users, sessionRepo, auditRepo, setupRepo, email, cfg.PasswordPepper, ttl)
+	mailerSvc := service.NewMailerService(smtpRepo, outboxRepo, email, nil)
+	authSvc := service.NewAuthService(pool, users, sessionRepo, auditRepo, verificationRepo, mailerSvc, setupRepo, email, cfg.PasswordPepper, ttl)
 	setupSvc := service.NewSetupService(pool, setupRepo, authSvc, auditRepo)
+	notificationSvc := service.NewNotificationService(users, mailerSvc, email)
 	// Mirror the production startup hook so the test instance starts in
 	// the same state cmd/api/main.go produces. Capture the cleartext token
 	// for tests that exercise the install ceremony directly.
@@ -126,23 +130,30 @@ func setup(t *testing.T) *testStack {
 	if err != nil {
 		t.Fatalf("setup ensure token: %v", err)
 	}
+	settlementSvc := service.NewSettlementService(settlements, groups)
+	recurringSvc := service.NewRecurringService(recurring, expenses, groups, categorySvc)
+	groupSvc.SetNotifications(notificationSvc)
+	settlementSvc.SetNotifications(users, notificationSvc)
+	recurringSvc.SetNotifications(users, notificationSvc)
 	h := server.New(&handlers.Server{
-		Cfg:         cfg,
-		Pool:        pool,
-		Auth:        authSvc,
-		MeSvc:       service.NewMeService(users, sessionRepo, email, cfg.PasswordPepper),
-		Groups:      groupSvc,
-		Categories:  categorySvc,
-		Expenses:    service.NewExpenseService(expenses, groups, categorySvc),
-		Balances:    service.NewBalanceService(balances, groups),
-		Settlements: service.NewSettlementService(settlements, groups),
-		Recurring:   service.NewRecurringService(recurring, expenses, groups, categorySvc),
-		Activity:    service.NewActivityService(groupSvc, activityRepo, expenses, settlements, recurring),
-		Admin:       service.NewAdminService(pool, users, groups, sessionRepo, auditRepo, email, cfg.PasswordPepper),
-		Smtp:        service.NewSmtpService(smtpRepo, email),
-		Setup:       setupSvc,
-		Users:       users,
-		Audit:       auditRepo,
+		Cfg:           cfg,
+		Pool:          pool,
+		Auth:          authSvc,
+		MeSvc:         service.NewMeService(users, sessionRepo, email, cfg.PasswordPepper),
+		Groups:        groupSvc,
+		Categories:    categorySvc,
+		Expenses:      service.NewExpenseService(expenses, groups, categorySvc),
+		Balances:      service.NewBalanceService(balances, groups),
+		Settlements:   settlementSvc,
+		Recurring:     recurringSvc,
+		Activity:      service.NewActivityService(groupSvc, activityRepo, expenses, settlements, recurring),
+		Admin:         service.NewAdminService(pool, users, groups, sessionRepo, auditRepo, email, cfg.PasswordPepper),
+		Smtp:          service.NewSmtpService(smtpRepo, email),
+		Setup:         setupSvc,
+		Mailer:        mailerSvc,
+		Notifications: notificationSvc,
+		Users:         users,
+		Audit:         auditRepo,
 	})
 	srv := httptest.NewServer(h)
 	setupTokens.Store(srv.URL, setupTok)
@@ -251,11 +262,22 @@ func registerUser(t *testing.T, base, email, pw, name string) (map[string]any, *
 		tok, _ := tokAny.(string)
 		body["token"] = tok
 		resp, out = request(t, "POST", base+"/v1/setup/admin", body, nil)
+		// Setup endpoint returns the bare User, not a RegisterResponse.
+		require.Equal(t, http.StatusCreated, resp.StatusCode, out)
+		c := sessionCookie(resp)
+		require.NotNil(t, c)
+		return out, c
 	}
 	require.Equal(t, http.StatusCreated, resp.StatusCode, out)
+	// /v1/auth/register returns RegisterResponse{user, verification_required}.
+	// SMTP is unconfigured in tests so verification_required is always false
+	// and a session cookie is set; unwrap the inner user here so callers can
+	// keep treating the result as a flat User.
+	user, _ := out["user"].(map[string]any)
+	require.NotNil(t, user, "register response missing user field")
 	c := sessionCookie(resp)
 	require.NotNil(t, c)
-	return out, c
+	return user, c
 }
 
 // TestGoldenPath exercises the full MVP flow end-to-end against a real Postgres:

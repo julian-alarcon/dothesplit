@@ -27,15 +27,21 @@ var (
 const DefaultGroupCurrency = "EUR"
 
 type GroupService struct {
-	groups   *repo.GroupRepo
-	users    *repo.UserRepo
-	balances *repo.BalanceRepo
-	email    *crypto.EmailCipher
+	groups        *repo.GroupRepo
+	users         *repo.UserRepo
+	balances      *repo.BalanceRepo
+	email         *crypto.EmailCipher
+	notifications *NotificationService
 }
 
 func NewGroupService(g *repo.GroupRepo, u *repo.UserRepo, b *repo.BalanceRepo, e *crypto.EmailCipher) *GroupService {
 	return &GroupService{groups: g, users: u, balances: b, email: e}
 }
+
+// SetNotifications wires in the notification service. Optional — if unset,
+// AddMember silently skips the notification step (used by tests that don't
+// need to exercise the mailer).
+func (s *GroupService) SetNotifications(n *NotificationService) { s.notifications = n }
 
 // Create a group. The creator is auto-added as a member. Empty currency → DefaultGroupCurrency.
 func (s *GroupService) Create(ctx context.Context, name, defaultCurrency string, creatorID uuid.UUID) (*repo.Group, []repo.GroupMember, error) {
@@ -263,6 +269,22 @@ func (s *GroupService) AddMember(ctx context.Context, groupID, actorID uuid.UUID
 	m, err := s.groups.AddMember(ctx, groupID, invitee.ID)
 	if err != nil {
 		return nil, err
+	}
+	if s.notifications != nil && invitee.ID != actorID {
+		group, gerr := s.groups.FindByID(ctx, groupID)
+		if gerr == nil {
+			actor, aerr := s.users.FindByID(ctx, actorID)
+			actorName := ""
+			if aerr == nil {
+				actorName = actor.DisplayName
+			}
+			_ = s.notifications.NotifyIfEnabled(ctx, nil, invitee.ID,
+				PrefKeyGroupAdded, "group_member_added", TemplateVars{
+					DisplayName: invitee.DisplayName,
+					ActorName:   actorName,
+					GroupName:   group.Name,
+				})
+		}
 	}
 	members, err := s.groups.ListMembers(ctx, groupID)
 	if err != nil {

@@ -203,3 +203,121 @@ func currentSessionToken(c *gin.Context, s *Server) string {
 	tok, _ := c.Cookie(middleware.SessionCookieName(s.Cfg.CookieSecure))
 	return tok
 }
+
+// ChangeEmailRequest begins the change-email flow: re-verifies the password
+// (step-up), persists a token row keyed on the *new* email, and enqueues a
+// 6-digit code to that new address. The caller's email is unchanged until
+// they confirm.
+func (s *Server) ChangeEmailRequest(c *gin.Context) {
+	u := middleware.User(c)
+	if u == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	var req apigen.ChangeEmailRequest
+	if !bindStrictJSON(c, &req) {
+		return
+	}
+	err := s.Auth.RequestEmailChange(c.Request.Context(), u.ID, string(req.NewEmail), req.Password)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidCredentials):
+			writeErr(c, http.StatusUnauthorized, "invalid_credentials", "current password is incorrect")
+		case errors.Is(err, service.ErrStepUpRateLimited):
+			writeErr(c, http.StatusLocked, "rate_limited", "too many failed password attempts")
+		case errors.Is(err, service.ErrEmailTaken):
+			writeErr(c, http.StatusConflict, "email_taken", "email already in use")
+		default:
+			writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
+		}
+		return
+	}
+	c.Status(http.StatusAccepted)
+}
+
+// ChangeEmailConfirm consumes the code, swaps the email, revokes other
+// sessions, and refreshes the caller's cookie.
+func (s *Server) ChangeEmailConfirm(c *gin.Context) {
+	u := middleware.User(c)
+	if u == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	var req apigen.ConfirmEmailChangeRequest
+	if !bindStrictJSON(c, &req) {
+		return
+	}
+	user, token, err := s.Auth.ConfirmEmailChange(c.Request.Context(), u.ID, req.Code)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidCode):
+			writeErr(c, http.StatusBadRequest, "invalid_code", "verification code is incorrect")
+		case errors.Is(err, service.ErrCodeExpired):
+			writeErr(c, http.StatusGone, "code_expired", "verification code has expired or is no longer valid")
+		case errors.Is(err, service.ErrVerifyRateLimited):
+			writeErr(c, http.StatusTooManyRequests, "too_many_attempts", "too many incorrect attempts; request a new code")
+		case errors.Is(err, service.ErrEmailTaken):
+			writeErr(c, http.StatusConflict, "email_taken", "email already in use")
+		default:
+			writeErr(c, http.StatusInternalServerError, "internal", "confirm failed")
+		}
+		return
+	}
+	s.setSessionCookie(c, token)
+	c.JSON(http.StatusOK, toAPIUser(user))
+}
+
+// GetMyNotifications returns the caller's notification preferences.
+func (s *Server) GetMyNotifications(c *gin.Context) {
+	u := middleware.User(c)
+	if u == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	p, err := s.Notifications.GetPrefs(c.Request.Context(), u.ID)
+	if err != nil {
+		writeErr(c, http.StatusInternalServerError, "internal", "load prefs failed")
+		return
+	}
+	c.JSON(http.StatusOK, toAPIPrefs(p))
+}
+
+// UpdateMyNotifications writes the caller's notification preferences.
+func (s *Server) UpdateMyNotifications(c *gin.Context) {
+	u := middleware.User(c)
+	if u == nil {
+		writeErr(c, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+	var req apigen.NotificationPrefs
+	if !bindStrictJSON(c, &req) {
+		return
+	}
+	in := &service.NotificationPrefs{}
+	if req.NotifyRecurringRun != nil {
+		in.NotifyRecurringRun = *req.NotifyRecurringRun
+	}
+	if req.NotifySettlement != nil {
+		in.NotifySettlement = *req.NotifySettlement
+	}
+	if req.NotifyGroupAdded != nil {
+		in.NotifyGroupAdded = *req.NotifyGroupAdded
+	}
+	out, err := s.Notifications.UpdatePrefs(c.Request.Context(), u.ID, in)
+	if err != nil {
+		writeErr(c, http.StatusInternalServerError, "internal", "save prefs failed")
+		return
+	}
+	c.JSON(http.StatusOK, toAPIPrefs(out))
+}
+
+func toAPIPrefs(p *service.NotificationPrefs) apigen.NotificationPrefs {
+	r := p.NotifyRecurringRun
+	st := p.NotifySettlement
+	ga := p.NotifyGroupAdded
+	return apigen.NotificationPrefs{
+		NotifyRecurringRun: &r,
+		NotifySettlement:   &st,
+		NotifyGroupAdded:   &ga,
+	}
+}

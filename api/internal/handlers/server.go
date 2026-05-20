@@ -30,11 +30,13 @@ type Server struct {
 	Settlements *service.SettlementService
 	Recurring   *service.RecurringService
 	Activity    *service.ActivityService
-	Admin       *service.AdminService
-	Smtp        *service.SmtpService
-	Setup       *service.SetupService
-	Users       *repo.UserRepo
-	Audit       *repo.AuditRepo
+	Admin         *service.AdminService
+	Smtp          *service.SmtpService
+	Setup         *service.SetupService
+	Mailer        *service.MailerService
+	Notifications *service.NotificationService
+	Users         *repo.UserRepo
+	Audit         *repo.AuditRepo
 }
 
 func writeErr(c *gin.Context, status int, code, message string) {

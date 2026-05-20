@@ -139,6 +139,13 @@ paths:
   /v1/auth/register:
     post:
       summary: Register a new user
+      description: |
+        When SMTP is configured the new account starts unverified: the response
+        body's `verification_required` is `true`, no session cookie is set, and
+        a 6-digit verification code is emailed to the address. The user must
+        POST it to `/v1/auth/verify` before they can log in. When SMTP is not
+        configured the account is auto-verified immediately and the response
+        sets a session cookie just like login.
       operationId: register
       security: []
       tags: [auth]
@@ -149,7 +156,32 @@ paths:
             schema: { $ref: "#/components/schemas/RegisterRequest" }
       responses:
         "201":
-          description: Created; session cookie set
+          description: Created. Session cookie is set only when `verification_required` is false.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegisterResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/SetupRequired" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /v1/auth/verify:
+    post:
+      summary: Verify a pending registration with the 6-digit code
+      operationId: verifyEmail
+      security: []
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VerifyEmailRequest" }
+      responses:
+        "200":
+          description: Verified; session cookie set.
           headers:
             Set-Cookie:
               schema: { type: string }
@@ -157,8 +189,31 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
-        "403": { $ref: "#/components/responses/SetupRequired" }
-        "409": { $ref: "#/components/responses/Conflict" }
+        "410":
+          description: Verification code expired or already used.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /v1/auth/verify/resend:
+    post:
+      summary: Resend the registration verification code
+      description: |
+        Always returns 204 regardless of whether the email matches a pending
+        registration, to avoid account enumeration. Rate-limited per IP.
+      operationId: resendVerification
+      security: []
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResendVerificationRequest" }
+      responses:
+        "204":
+          description: Accepted. A new code may have been sent.
+        "400": { $ref: "#/components/responses/BadRequest" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /v1/auth/login:
@@ -182,6 +237,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Account exists but the email address has not been verified yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /v1/auth/logout:
@@ -244,6 +304,97 @@ paths:
       responses:
         "204":
           description: Password changed
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/me/email/change-request:
+    post:
+      summary: Begin a change-email flow (sends a code to the new address)
+      description: |
+        Step-up: the caller's current password must be supplied. The new email
+        is held in a verification token and only persisted to `users.email`
+        when the user POSTs the matching 6-digit code to
+        `/v1/me/email/change-confirm`. The current address keeps working until
+        confirm succeeds.
+      operationId: changeEmailRequest
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeEmailRequest" }
+      responses:
+        "202":
+          description: Code sent (if SMTP is configured); awaiting confirmation.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "423":
+          description: Step-up rate-limited.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/me/email/change-confirm:
+    post:
+      summary: Confirm a pending email change with the 6-digit code
+      description: |
+        On success the user's email is updated, all sessions for the user are
+        revoked, and a fresh session cookie is issued so the current browser
+        stays logged in.
+      operationId: changeEmailConfirm
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmEmailChangeRequest" }
+      responses:
+        "200":
+          description: Email updated; new session cookie set.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "410":
+          description: Verification code expired or already used.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /v1/me/notifications:
+    get:
+      summary: Get the current user's notification preferences
+      operationId: getMyNotifications
+      tags: [auth]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPrefs" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      summary: Update the current user's notification preferences
+      operationId: updateMyNotifications
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationPrefs" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPrefs" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
@@ -931,6 +1082,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /v1/admin/smtp/password:
+    get:
+      summary: Reveal the stored SMTP password (admin)
+      description: |
+        Decrypts and returns the SMTP password as cleartext. Admin-only and
+        audit-logged as `admin_view_smtp_password`. The cleartext is never
+        returned by `GET /v1/admin/smtp` — admins must use this dedicated
+        endpoint, which makes the action explicit and reviewable.
+      operationId: adminRevealSmtpPassword
+      tags: [admin]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SmtpPasswordResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: SMTP is not configured, or no password is stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /v1/admin/smtp/test:
     post:
       summary: Test the current SMTP configuration (admin)
@@ -939,6 +1114,26 @@ paths:
       responses:
         "200":
           description: Result of the connection test.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SmtpTestResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/admin/smtp/send-test:
+    post:
+      summary: Send a real test email to the admin's own address (admin)
+      description: |
+        Sends a plain-text test email through the configured SMTP server to
+        the calling admin's verified email address. Synchronous — the SMTP
+        result is reflected directly in the response (no outbox round-trip),
+        so failures surface immediately in the admin UI.
+      operationId: adminSendSmtpTestEmail
+      tags: [admin]
+      responses:
+        "200":
+          description: Result of the send attempt.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SmtpTestResponse" }
@@ -1091,6 +1286,11 @@ components:
           type: boolean
           readOnly: true
           description: True when an admin reset the user's password. The frontend must redirect them to a password-change page; the API rejects all non-password endpoints until cleared.
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the email address was confirmed. Null until the user verifies, or set automatically at registration when SMTP is unconfigured.
 
     UpdateMeRequest:
       type: object
@@ -1138,6 +1338,86 @@ components:
         email: alice@example.com
         password: correct-horse-battery-staple
         display_name: Alice
+
+    RegisterResponse:
+      type: object
+      required: [user, verification_required]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        verification_required:
+          type: boolean
+          description: True when the user must POST a 6-digit code to `/v1/auth/verify` before logging in. False when SMTP is unconfigured and the account was auto-verified.
+
+    VerifyEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [email, code]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: "^[0-9]{6}$"
+          description: 6-digit numeric code received by email.
+      example:
+        email: alice@example.com
+        code: "482193"
+
+    ResendVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+      example:
+        email: alice@example.com
+
+    ChangeEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [new_email, password]
+      properties:
+        new_email: { type: string, format: email, maxLength: 254 }
+        password:
+          type: string
+          minLength: 1
+          description: The caller's current password (step-up).
+      example:
+        new_email: alice.new@example.com
+        password: correct-horse-battery-staple
+
+    ConfirmEmailChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: "^[0-9]{6}$"
+          description: 6-digit code received at the new address.
+      example:
+        code: "917544"
+
+    NotificationPrefs:
+      type: object
+      additionalProperties: false
+      description: |
+        Per-user, per-event email opt-in flags. All default to false (off).
+        The server only emails when the corresponding flag is true AND SMTP is
+        configured.
+      properties:
+        notify_recurring_run:
+          type: boolean
+          description: Email me when a recurring expense is materialized in one of my groups.
+        notify_settlement:
+          type: boolean
+          description: Email me when a settlement is recorded in one of my groups.
+        notify_group_added:
+          type: boolean
+          description: Email me when I am added to a new group.
 
     SetupStatus:
       type: object
@@ -1676,6 +1956,14 @@ components:
           type: boolean
           default: false
           description: Required when tls_mode='none' and a username/password is provided.
+
+    SmtpPasswordResponse:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          description: Cleartext SMTP password. Empty string when no password is stored.
 
     SmtpTestResponse:
       type: object

@@ -136,6 +136,23 @@ func validateSmtp(in SmtpUpdateInput) error {
 	return nil
 }
 
+// RevealPassword returns the stored SMTP password as cleartext, or "" when
+// no password is configured. Caller is responsible for authorization (admin
+// role) and for writing the audit row — this is the only ingress that
+// exposes the cleartext outside the SMTP send path, so it's deliberately
+// kept narrow and the audit happens at the handler layer where the actor
+// identity lives.
+func (s *SmtpService) RevealPassword(ctx context.Context) (string, error) {
+	c, err := s.repo.Get(ctx)
+	if err != nil {
+		return "", err
+	}
+	if len(c.PasswordEncrypted) == 0 {
+		return "", nil
+	}
+	return s.email.Decrypt(c.PasswordEncrypted)
+}
+
 type SmtpTestResult struct {
 	Success bool
 	Error   string

@@ -26,6 +26,14 @@ var (
 	// ErrSetupRequired is returned by Register when the instance is still in
 	// first-run setup mode. Handlers map it to 403 with code='setup_required'.
 	ErrSetupRequired = errors.New("setup required")
+	// ErrEmailUnverified is returned by Login when the account exists but the
+	// user has not yet confirmed their email address. Handlers map it to
+	// 403 with code='email_unverified' so the frontend can route to /verify.
+	ErrEmailUnverified = errors.New("email not verified")
+	// ErrInvalidCode and friends serve the verify/confirm flows.
+	ErrInvalidCode        = errors.New("invalid code")
+	ErrCodeExpired        = errors.New("code expired or already used")
+	ErrVerifyRateLimited  = errors.New("verification rate limited")
 )
 
 // SetupLocker is the minimal interface AuthService needs from the setup
@@ -36,14 +44,16 @@ type SetupLocker interface {
 }
 
 type AuthService struct {
-	users     *repo.UserRepo
-	sessions  *repo.SessionRepo
-	audit     *repo.AuditRepo
-	setupLock SetupLocker
-	pool      *pgxpool.Pool
-	email     *crypto.EmailCipher
-	pepper    []byte
-	sessTTL   time.Duration
+	users        *repo.UserRepo
+	sessions     *repo.SessionRepo
+	audit        *repo.AuditRepo
+	verification *repo.VerificationRepo
+	mailer       *MailerService
+	setupLock    SetupLocker
+	pool         *pgxpool.Pool
+	email        *crypto.EmailCipher
+	pepper       []byte
+	sessTTL      time.Duration
 
 	// stepUpFails counts recent failed step-up password verifications keyed
 	// by user ID, so handlers performing destructive admin actions can short-
@@ -71,16 +81,18 @@ const (
 // to HTTP 423 Locked.
 var ErrStepUpRateLimited = errors.New("step-up rate limited")
 
-func NewAuthService(pool *pgxpool.Pool, users *repo.UserRepo, sessions *repo.SessionRepo, audit *repo.AuditRepo, setupLock SetupLocker, email *crypto.EmailCipher, pepper []byte, sessTTL time.Duration) *AuthService {
+func NewAuthService(pool *pgxpool.Pool, users *repo.UserRepo, sessions *repo.SessionRepo, audit *repo.AuditRepo, verification *repo.VerificationRepo, mailer *MailerService, setupLock SetupLocker, email *crypto.EmailCipher, pepper []byte, sessTTL time.Duration) *AuthService {
 	return &AuthService{
-		users:     users,
-		sessions:  sessions,
-		audit:     audit,
-		setupLock: setupLock,
-		pool:      pool,
-		email:     email,
-		pepper:    pepper,
-		sessTTL:   sessTTL,
+		users:        users,
+		sessions:     sessions,
+		audit:        audit,
+		verification: verification,
+		mailer:       mailer,
+		setupLock:    setupLock,
+		pool:         pool,
+		email:        email,
+		pepper:       pepper,
+		sessTTL:      sessTTL,
 	}
 }
 
@@ -97,6 +109,7 @@ type User struct {
 	Timezone           *string
 	IsAdmin            bool
 	MustChangePassword bool
+	EmailVerifiedAt    *time.Time
 }
 
 func (s *AuthService) toUser(u *repo.User) (*User, error) {
@@ -116,44 +129,111 @@ func (s *AuthService) toUser(u *repo.User) (*User, error) {
 		Timezone:           u.Timezone,
 		IsAdmin:            u.Role == "admin",
 		MustChangePassword: u.MustChangePassword,
+		EmailVerifiedAt:    u.EmailVerifiedAt,
 	}, nil
 }
 
-// Register creates a user via /v1/auth/register and opens a session. While
-// first-run setup is pending it returns ErrSetupRequired so the only path
-// that can mint the very first user is /v1/setup/admin (which calls
-// RegisterTx directly inside its own atomic ceremony).
-func (s *AuthService) Register(ctx context.Context, email, password, displayName string) (*User, string, error) {
+// RegisterResult is what /v1/auth/register returns to the handler. When the
+// instance has SMTP configured the new account is unverified and no session
+// is issued: SessionToken is "" and VerificationRequired is true. When SMTP
+// is unconfigured the account is auto-verified and a session is issued, just
+// like the historical behaviour (so the first bootstrap admin can register
+// before SMTP exists).
+type RegisterResult struct {
+	User                 *User
+	SessionToken         string
+	VerificationRequired bool
+}
+
+// Register creates a user via /v1/auth/register. While first-run setup is
+// pending it returns ErrSetupRequired so the only path that can mint the
+// very first user is /v1/setup/admin (which calls RegisterTx directly inside
+// its own atomic ceremony).
+func (s *AuthService) Register(ctx context.Context, email, password, displayName string) (*RegisterResult, error) {
 	if s.setupLock != nil {
 		locked, err := s.setupLock.Locked(ctx)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		if !locked {
-			return nil, "", ErrSetupRequired
+			return nil, ErrSetupRequired
 		}
 	}
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer tx.Rollback(ctx)
 
 	out, _, err := s.RegisterTx(ctx, tx, email, password, displayName)
 	if err != nil {
-		return nil, "", err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	token, err := s.issueSession(ctx, out.ID)
-	if err != nil {
-		return nil, "", err
+	smtpReady := false
+	if s.mailer != nil {
+		ok, ierr := s.mailer.IsConfigured(ctx)
+		if ierr == nil {
+			smtpReady = ok
+		}
 	}
-	return out, token, nil
+
+	if !smtpReady {
+		// Auto-verify so the user can log in immediately. This happens on a
+		// fresh install before SMTP is configured (and on every register
+		// while SMTP stays unconfigured); recorded in audit so an admin can
+		// see retroactively that the gate was open.
+		if _, err := tx.Exec(ctx, `UPDATE users SET email_verified_at = now() WHERE id = $1`, out.ID); err != nil {
+			return nil, err
+		}
+		meta, _ := json.Marshal(map[string]any{"reason": "smtp_unconfigured"})
+		_ = s.audit.Insert(ctx, tx, &repo.AuditEntry{
+			ActorUserID: out.ID,
+			TargetUserID: &out.ID,
+			Action:      "auto_verified_no_smtp",
+			Success:     true,
+			Metadata:    meta,
+		})
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		token, err := s.issueSession(ctx, out.ID)
+		if err != nil {
+			return nil, err
+		}
+		out.EmailVerifiedAt = ptrNow()
+		return &RegisterResult{User: out, SessionToken: token, VerificationRequired: false}, nil
+	}
+
+	// SMTP is configured — issue a 6-digit code, enqueue the email, do NOT
+	// open a session. The user must call /v1/auth/verify with the code.
+	code, err := generateNumericCode(6)
+	if err != nil {
+		return nil, err
+	}
+	tok := &repo.VerificationToken{
+		UserID:    out.ID,
+		Purpose:   repo.PurposeRegister,
+		CodeHash:  hashCode(code),
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+	if err := s.verification.Insert(ctx, tx, tok); err != nil {
+		return nil, err
+	}
+	if err := s.mailer.Enqueue(ctx, tx, email, "verify_register", TemplateVars{
+		DisplayName: displayName,
+		Code:        code,
+	}); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &RegisterResult{User: out, SessionToken: "", VerificationRequired: true}, nil
 }
+
+func ptrNow() *time.Time { t := time.Now(); return &t }
 
 // RegisterTx is the bootstrap-aware user-creation core, callable inside a
 // caller-owned transaction. /v1/setup/admin uses this so the install
@@ -251,6 +331,9 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*User,
 	}
 	if !ok {
 		return nil, "", ErrInvalidCredentials
+	}
+	if u.EmailVerifiedAt == nil {
+		return nil, "", ErrEmailUnverified
 	}
 	token, err := s.issueSession(ctx, u.ID)
 	if err != nil {

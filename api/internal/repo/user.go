@@ -25,6 +25,10 @@ type User struct {
 	Timezone           *string
 	Role               string
 	MustChangePassword bool
+	EmailVerifiedAt    *time.Time
+	// NotificationPrefs is the raw JSONB blob; service layer parses it into
+	// a typed projection so callers don't deal with map[string]any here.
+	NotificationPrefs []byte
 }
 
 type UserRepo struct {
@@ -33,12 +37,12 @@ type UserRepo struct {
 
 func NewUserRepo(p *pgxpool.Pool) *UserRepo { return &UserRepo{pool: p} }
 
-const userCols = `id, email_hash, email_encrypted, display_name, password_hash, created_at, deleted_at, avatar_updated_at, week_start, timezone, role, must_change_password`
+const userCols = `id, email_hash, email_encrypted, display_name, password_hash, created_at, deleted_at, avatar_updated_at, week_start, timezone, role, must_change_password, email_verified_at, notification_prefs`
 
 func scanUser(row pgx.Row, u *User) error {
 	return row.Scan(&u.ID, &u.EmailHash, &u.EmailEncrypted, &u.DisplayName,
 		&u.PasswordHash, &u.CreatedAt, &u.DeletedAt, &u.AvatarUpdatedAt, &u.WeekStart, &u.Timezone,
-		&u.Role, &u.MustChangePassword)
+		&u.Role, &u.MustChangePassword, &u.EmailVerifiedAt, &u.NotificationPrefs)
 }
 
 func (r *UserRepo) Create(ctx context.Context, u *User) error {
@@ -301,6 +305,57 @@ func (r *UserRepo) CreateWithRole(ctx context.Context, q Querier, u *User, role 
 		RETURNING id, created_at
 	`, u.EmailHash, u.EmailEncrypted, u.DisplayName, u.PasswordHash, role, mustChange).
 		Scan(&u.ID, &u.CreatedAt)
+}
+
+// MarkEmailVerified stamps email_verified_at = now() and is idempotent: a
+// second call is a no-op rather than an error so the verify flow can be
+// safely retried by the user without producing a 404.
+func (r *UserRepo) MarkEmailVerified(ctx context.Context, q Querier, id uuid.UUID) error {
+	if q == nil {
+		q = poolQuerier{r.pool}
+	}
+	_, err := q.Exec(ctx, `
+		UPDATE users SET email_verified_at = now()
+		WHERE id = $1 AND deleted_at IS NULL AND email_verified_at IS NULL
+	`, id)
+	return err
+}
+
+// UpdateEmail replaces the user's email_hash and email_encrypted atomically.
+// Caller is responsible for the soft-delete-aware uniqueness check (the
+// partial unique index `users_email_hash_active_key` will surface a unique
+// violation as a pgconn.PgError with code 23505).
+func (r *UserRepo) UpdateEmail(ctx context.Context, q Querier, id uuid.UUID, emailHash, emailEnc []byte) error {
+	if q == nil {
+		q = poolQuerier{r.pool}
+	}
+	ct, err := q.Exec(ctx, `
+		UPDATE users SET email_hash = $2, email_encrypted = $3
+		WHERE id = $1 AND deleted_at IS NULL
+	`, id, emailHash, emailEnc)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateNotificationPrefs writes the JSONB blob verbatim. The caller is
+// responsible for validating keys (the service layer rejects unknown ones).
+func (r *UserRepo) UpdateNotificationPrefs(ctx context.Context, id uuid.UUID, prefs []byte) error {
+	ct, err := r.pool.Exec(ctx, `
+		UPDATE users SET notification_prefs = $2
+		WHERE id = $1 AND deleted_at IS NULL
+	`, id, prefs)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // SoftDelete marks the account as deleted, scrubs identifying fields, and

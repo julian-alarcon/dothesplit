@@ -87,8 +87,54 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register a new user */
+        /**
+         * Register a new user
+         * @description When SMTP is configured the new account starts unverified: the response
+         *     body's `verification_required` is `true`, no session cookie is set, and
+         *     a 6-digit verification code is emailed to the address. The user must
+         *     POST it to `/v1/auth/verify` before they can log in. When SMTP is not
+         *     configured the account is auto-verified immediately and the response
+         *     sets a session cookie just like login.
+         */
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify a pending registration with the 6-digit code */
+        post: operations["verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/verify/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend the registration verification code
+         * @description Always returns 204 regardless of whether the email matches a pending
+         *     registration, to avoid account enumeration. Rate-limited per IP.
+         */
+        post: operations["resendVerification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -163,6 +209,70 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email/change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin a change-email flow (sends a code to the new address)
+         * @description Step-up: the caller's current password must be supplied. The new email
+         *     is held in a verification token and only persisted to `users.email`
+         *     when the user POSTs the matching 6-digit code to
+         *     `/v1/me/email/change-confirm`. The current address keeps working until
+         *     confirm succeeds.
+         */
+        post: operations["changeEmailRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email/change-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a pending email change with the 6-digit code
+         * @description On success the user's email is updated, all sessions for the user are
+         *     revoked, and a fresh session cookie is issued so the current browser
+         *     stays logged in.
+         */
+        post: operations["changeEmailConfirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the current user's notification preferences */
+        get: operations["getMyNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the current user's notification preferences */
+        patch: operations["updateMyNotifications"];
         trace?: never;
     };
     "/v1/me/avatar": {
@@ -591,6 +701,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/smtp/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reveal the stored SMTP password (admin)
+         * @description Decrypts and returns the SMTP password as cleartext. Admin-only and
+         *     audit-logged as `admin_view_smtp_password`. The cleartext is never
+         *     returned by `GET /v1/admin/smtp` — admins must use this dedicated
+         *     endpoint, which makes the action explicit and reviewable.
+         */
+        get: operations["adminRevealSmtpPassword"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/smtp/test": {
         parameters: {
             query?: never;
@@ -602,6 +735,29 @@ export interface paths {
         put?: never;
         /** Test the current SMTP configuration (admin) */
         post: operations["adminTestSmtpConfig"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/smtp/send-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a real test email to the admin's own address (admin)
+         * @description Sends a plain-text test email through the configured SMTP server to
+         *     the calling admin's verified email address. Synchronous — the SMTP
+         *     result is reflected directly in the response (no outbox round-trip),
+         *     so failures surface immediately in the admin UI.
+         */
+        post: operations["adminSendSmtpTestEmail"];
         delete?: never;
         options?: never;
         head?: never;
@@ -664,6 +820,11 @@ export interface components {
             readonly is_admin?: boolean;
             /** @description True when an admin reset the user's password. The frontend must redirect them to a password-change page; the API rejects all non-password endpoints until cleared. */
             readonly must_change_password?: boolean;
+            /**
+             * Format: date-time
+             * @description When the email address was confirmed. Null until the user verifies, or set automatically at registration when SMTP is unconfigured.
+             */
+            email_verified_at?: string | null;
         };
         UpdateMeRequest: {
             display_name?: string;
@@ -695,6 +856,66 @@ export interface components {
             email: string;
             password: string;
             display_name: string;
+        };
+        RegisterResponse: {
+            user: components["schemas"]["User"];
+            /** @description True when the user must POST a 6-digit code to `/v1/auth/verify` before logging in. False when SMTP is unconfigured and the account was auto-verified. */
+            verification_required: boolean;
+        };
+        /**
+         * @example {
+         *       "email": "alice@example.com",
+         *       "code": "482193"
+         *     }
+         */
+        VerifyEmailRequest: {
+            /** Format: email */
+            email: string;
+            /** @description 6-digit numeric code received by email. */
+            code: string;
+        };
+        /**
+         * @example {
+         *       "email": "alice@example.com"
+         *     }
+         */
+        ResendVerificationRequest: {
+            /** Format: email */
+            email: string;
+        };
+        /**
+         * @example {
+         *       "new_email": "alice.new@example.com",
+         *       "password": "correct-horse-battery-staple"
+         *     }
+         */
+        ChangeEmailRequest: {
+            /** Format: email */
+            new_email: string;
+            /** @description The caller's current password (step-up). */
+            password: string;
+        };
+        /**
+         * @example {
+         *       "code": "917544"
+         *     }
+         */
+        ConfirmEmailChangeRequest: {
+            /** @description 6-digit code received at the new address. */
+            code: string;
+        };
+        /**
+         * @description Per-user, per-event email opt-in flags. All default to false (off).
+         *     The server only emails when the corresponding flag is true AND SMTP is
+         *     configured.
+         */
+        NotificationPrefs: {
+            /** @description Email me when a recurring expense is materialized in one of my groups. */
+            notify_recurring_run?: boolean;
+            /** @description Email me when a settlement is recorded in one of my groups. */
+            notify_settlement?: boolean;
+            /** @description Email me when I am added to a new group. */
+            notify_group_added?: boolean;
         };
         SetupStatus: {
             /** @description True after the install ceremony has been completed; false while it is still pending. */
@@ -1131,6 +1352,10 @@ export interface components {
              */
             allow_plaintext_credentials: boolean;
         };
+        SmtpPasswordResponse: {
+            /** @description Cleartext SMTP password. Empty string when no password is stored. */
+            password: string;
+        };
         SmtpTestResponse: {
             success: boolean;
             /** @description Short, non-sensitive error code on failure (e.g. "dial_timeout", "auth_failed", "tls_handshake_failed"). */
@@ -1366,8 +1591,37 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created; session cookie set */
+            /** @description Created. Session cookie is set only when `verification_required` is false. */
             201: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["SetupRequired"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Verified; session cookie set. */
+            200: {
                 headers: {
                     "Set-Cookie"?: string;
                     [name: string]: unknown;
@@ -1377,8 +1631,39 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            403: components["responses"]["SetupRequired"];
-            409: components["responses"]["Conflict"];
+            /** @description Verification code expired or already used. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    resendVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted. A new code may have been sent. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1406,6 +1691,15 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            /** @description Account exists but the email address has not been verified yet. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1512,6 +1806,125 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    changeEmailRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Code sent (if SMTP is configured); awaiting confirmation. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            /** @description Step-up rate-limited. */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    changeEmailConfirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmEmailChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Email updated; new session cookie set. */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            /** @description Verification code expired or already used. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getMyNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPrefs"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateMyNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPrefs"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPrefs"];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -2449,6 +2862,37 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    adminRevealSmtpPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpPasswordResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description SMTP is not configured, or no password is stored. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     adminTestSmtpConfig: {
         parameters: {
             query?: never;
@@ -2459,6 +2903,29 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Result of the connection test. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpTestResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminSendSmtpTestEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result of the send attempt. */
             200: {
                 headers: {
                     [name: string]: unknown;

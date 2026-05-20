@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,12 +11,22 @@ import (
 )
 
 type SettlementService struct {
-	settlements *repo.SettlementRepo
-	groups      *repo.GroupRepo
+	settlements   *repo.SettlementRepo
+	groups        *repo.GroupRepo
+	users         *repo.UserRepo
+	notifications *NotificationService
 }
 
 func NewSettlementService(s *repo.SettlementRepo, g *repo.GroupRepo) *SettlementService {
 	return &SettlementService{settlements: s, groups: g}
+}
+
+// SetNotifications wires in user lookup + notification dispatch. Optional;
+// when unset the service silently skips notifications (used by tests that
+// don't need to exercise the mailer).
+func (s *SettlementService) SetNotifications(users *repo.UserRepo, n *NotificationService) {
+	s.users = users
+	s.notifications = n
 }
 
 type CreateSettlementInput struct {
@@ -62,8 +73,61 @@ func (s *SettlementService) Create(ctx context.Context, actorID uuid.UUID, in Cr
 	if err := s.settlements.Create(ctx, st); err != nil {
 		return nil, err
 	}
+
+	if s.notifications != nil && s.users != nil {
+		group, gerr := s.groups.FindByID(ctx, in.GroupID)
+		groupName := ""
+		groupCurrency := "USD"
+		if gerr == nil {
+			groupName = group.Name
+			groupCurrency = group.DefaultCurrency
+		}
+		fromUser, _ := s.users.FindByID(ctx, in.FromUserID)
+		toUser, _ := s.users.FindByID(ctx, in.ToUserID)
+		fromName, toName := "Someone", "another member"
+		if fromUser != nil {
+			fromName = fromUser.DisplayName
+		}
+		if toUser != nil {
+			toName = toUser.DisplayName
+		}
+		amount := formatMoney(in.AmountCents, groupCurrency)
+		members, _ := s.groups.ListMembers(ctx, in.GroupID)
+		// Notify everyone in the group who's opted in (best-effort; failures
+		// don't roll back the settlement).
+		for _, m := range members {
+			actorName := fromName + " paid " + toName
+			desc := fromName + " -> " + toName
+			_ = s.notifications.NotifyIfEnabled(ctx, nil, m.UserID,
+				PrefKeySettlement, "settlement_created", TemplateVars{
+					ActorName:   actorName,
+					GroupName:   groupName,
+					Description: desc,
+					Amount:      amount,
+				})
+		}
+	}
 	return st, nil
 }
+
+// formatMoney renders an integer-cent value as e.g. "12.34 EUR". Plain text;
+// no narrowSymbol, no Intl — Go has no equivalent and the email is plain text
+// anyway.
+func formatMoney(cents int64, currency string) string {
+	whole := cents / 100
+	frac := cents % 100
+	if frac < 0 {
+		frac = -frac
+	}
+	return fmtSign(whole, frac) + " " + currency
+}
+
+func fmtSign(whole, frac int64) string {
+	return fmtInt(whole) + "." + fmtTwo(frac)
+}
+
+func fmtInt(n int64) string { return fmt.Sprintf("%d", n) }
+func fmtTwo(n int64) string { return fmt.Sprintf("%02d", n) }
 
 // Get returns a single settlement by id, enforcing group membership.
 func (s *SettlementService) Get(ctx context.Context, actorID, id uuid.UUID) (*repo.Settlement, error) {

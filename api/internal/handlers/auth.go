@@ -16,7 +16,7 @@ func (s *Server) Register(c *gin.Context) {
 	if !bindStrictJSON(c, &req) {
 		return
 	}
-	u, token, err := s.Auth.Register(c.Request.Context(), string(req.Email), req.Password, req.DisplayName)
+	res, err := s.Auth.Register(c.Request.Context(), string(req.Email), req.Password, req.DisplayName)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrSetupRequired):
@@ -29,8 +29,47 @@ func (s *Server) Register(c *gin.Context) {
 		}
 		return
 	}
+	if !res.VerificationRequired && res.SessionToken != "" {
+		s.setSessionCookie(c, res.SessionToken)
+	}
+	user := toAPIUser(res.User)
+	c.JSON(http.StatusCreated, apigen.RegisterResponse{
+		User:                 user,
+		VerificationRequired: res.VerificationRequired,
+	})
+}
+
+func (s *Server) VerifyEmail(c *gin.Context) {
+	var req apigen.VerifyEmailRequest
+	if !bindStrictJSON(c, &req) {
+		return
+	}
+	u, token, err := s.Auth.VerifyEmail(c.Request.Context(), string(req.Email), req.Code)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidCode):
+			writeErr(c, http.StatusBadRequest, "invalid_code", "verification code is incorrect")
+		case errors.Is(err, service.ErrCodeExpired):
+			writeErr(c, http.StatusGone, "code_expired", "verification code has expired or is no longer valid")
+		case errors.Is(err, service.ErrVerifyRateLimited):
+			writeErr(c, http.StatusTooManyRequests, "too_many_attempts", "too many incorrect attempts; request a new code")
+		default:
+			writeErr(c, http.StatusInternalServerError, "internal", "verify failed")
+		}
+		return
+	}
 	s.setSessionCookie(c, token)
-	c.JSON(http.StatusCreated, toAPIUser(u))
+	c.JSON(http.StatusOK, toAPIUser(u))
+}
+
+func (s *Server) ResendVerification(c *gin.Context) {
+	var req apigen.ResendVerificationRequest
+	if !bindStrictJSON(c, &req) {
+		return
+	}
+	// Always 204 to avoid account enumeration.
+	_ = s.Auth.ResendVerification(c.Request.Context(), string(req.Email))
+	c.Status(http.StatusNoContent)
 }
 
 func (s *Server) Login(c *gin.Context) {
@@ -40,7 +79,12 @@ func (s *Server) Login(c *gin.Context) {
 	}
 	u, token, err := s.Auth.Login(c.Request.Context(), string(req.Email), req.Password)
 	if err != nil {
-		writeErr(c, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		switch {
+		case errors.Is(err, service.ErrEmailUnverified):
+			writeErr(c, http.StatusForbidden, "email_unverified", "email address not yet verified")
+		default:
+			writeErr(c, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		}
 		return
 	}
 	s.setSessionCookie(c, token)
@@ -79,6 +123,7 @@ func toAPIUser(u *service.User) apigen.User {
 		Timezone:           u.Timezone,
 		IsAdmin:            &isAdmin,
 		MustChangePassword: &mustChange,
+		EmailVerifiedAt:    u.EmailVerifiedAt,
 	}
 	return out
 }

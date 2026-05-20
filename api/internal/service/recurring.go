@@ -11,14 +11,23 @@ import (
 )
 
 type RecurringService struct {
-	recurring  *repo.RecurringRepo
-	expenses   *repo.ExpenseRepo
-	groups     *repo.GroupRepo
-	categories *CategoryService
+	recurring     *repo.RecurringRepo
+	expenses      *repo.ExpenseRepo
+	groups        *repo.GroupRepo
+	categories    *CategoryService
+	users         *repo.UserRepo
+	notifications *NotificationService
 }
 
 func NewRecurringService(r *repo.RecurringRepo, e *repo.ExpenseRepo, g *repo.GroupRepo, c *CategoryService) *RecurringService {
 	return &RecurringService{recurring: r, expenses: e, groups: g, categories: c}
+}
+
+// SetNotifications enables per-member email notifications for materialized
+// recurring runs. Optional — left nil in tests that don't exercise the mailer.
+func (s *RecurringService) SetNotifications(users *repo.UserRepo, n *NotificationService) {
+	s.users = users
+	s.notifications = n
 }
 
 type CreateRecurringInput struct {
@@ -147,6 +156,25 @@ func (s *RecurringService) Tick(ctx context.Context) (int, error) {
 		if err := s.recurring.UpdateNextRunTx(ctx, tx, r.ID, next); err != nil {
 			return 0, err
 		}
+
+		// Notify opted-in members. Best-effort: failures don't roll back.
+		if s.notifications != nil && s.users != nil {
+			groupName := ""
+			if g, gerr := s.groups.FindByID(ctx, r.GroupID); gerr == nil {
+				groupName = g.Name
+			}
+			amount := formatMoney(r.AmountCents, r.Currency)
+			members, _ := s.groups.ListMembers(ctx, r.GroupID)
+			for _, m := range members {
+				_ = s.notifications.NotifyIfEnabled(ctx, nil, m.UserID,
+					PrefKeyRecurringRun, "recurring_run", TemplateVars{
+						GroupName:   groupName,
+						Description: r.Description,
+						Amount:      amount,
+					})
+			}
+		}
+
 		created++
 	}
 	if err := tx.Commit(ctx); err != nil {

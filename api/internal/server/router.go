@@ -42,6 +42,8 @@ func New(s *handlers.Server) http.Handler {
 	authG.Use(mw.LoginRateLimiter())
 	authG.POST("/auth/register", s.Register)
 	authG.POST("/auth/login", s.Login)
+	authG.POST("/auth/verify", s.VerifyEmail)
+	authG.POST("/auth/verify/resend", s.ResendVerification)
 	v1.POST("/auth/logout", s.Logout)
 
 	// Authenticated endpoints.
@@ -52,6 +54,10 @@ func New(s *handlers.Server) http.Handler {
 	auth.PATCH("/me", s.UpdateMe)
 	auth.DELETE("/me", s.DeleteMe)
 	auth.POST("/me/password", s.ChangePassword)
+	auth.POST("/me/email/change-request", s.ChangeEmailRequest)
+	auth.POST("/me/email/change-confirm", s.ChangeEmailConfirm)
+	auth.GET("/me/notifications", s.GetMyNotifications)
+	auth.PATCH("/me/notifications", s.UpdateMyNotifications)
 	auth.PUT("/me/avatar", s.SetAvatar)
 	auth.DELETE("/me/avatar", s.DeleteAvatar)
 	auth.GET("/users/:id/avatar", s.GetUserAvatar)
@@ -100,7 +106,9 @@ func New(s *handlers.Server) http.Handler {
 	admin.DELETE("/groups/:id", s.AdminDeleteGroup)
 	admin.GET("/smtp", s.AdminGetSmtp)
 	admin.PUT("/smtp", s.AdminUpdateSmtp)
+	admin.GET("/smtp/password", s.AdminRevealSmtpPassword)
 	admin.POST("/smtp/test", s.AdminTestSmtp)
+	admin.POST("/smtp/send-test", s.AdminSendSmtpTestEmail)
 	admin.GET("/audit", s.AdminListAudit)
 
 	return r
