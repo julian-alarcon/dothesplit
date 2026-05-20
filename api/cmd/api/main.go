@@ -20,6 +20,13 @@ import (
 )
 
 func main() {
+	// Self-probe used by the Docker HEALTHCHECK; runs before any DB or
+	// config setup so a sick instance can still answer the probe path.
+	if len(os.Args) > 1 && os.Args[1] == "--healthcheck" {
+		runHealthcheck()
+		return
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
