@@ -370,7 +370,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
                       </div>
                     </div>
                   </div>
-                  <span class="shrink-0 font-mono">
+                  <span class="shrink-0 font-mono text-xl tabular-nums">
                     {new Intl.NumberFormat(undefined, { style: "currency", currency: e.currency, currencyDisplay: "narrowSymbol" }).format(e.amount_cents / 100)}
                   </span>
                 </a>
@@ -417,7 +417,7 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
                     </div>
                   </div>
                 </div>
-                <span class="shrink-0 font-mono">
+                <span class="shrink-0 font-mono text-xl tabular-nums">
                   {new Intl.NumberFormat(undefined, { style: "currency", currency, currencyDisplay: "narrowSymbol" }).format(s.amount_cents / 100)}
                 </span>
               </a>
