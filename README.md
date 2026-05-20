@@ -17,15 +17,43 @@ guide.
 
 ```bash
 cp .env.example .env
-# Generate keys
-echo "EMAIL_ENC_KEY=$(openssl rand -base64 32)" >> .env
-echo "EMAIL_HMAC_KEY=$(openssl rand -base64 32)" >> .env
-echo "PASSWORD_PEPPER=$(openssl rand -base64 32)" >> .env
+
+# Generate the three encryption keys + a Postgres password and append to .env.
+# These end up in the database protecting every email and password — generate
+# them ONCE and keep a copy somewhere safe. See "Secrets you must back up"
+# below.
+{
+  echo "EMAIL_ENC_KEY=$(openssl rand -base64 32)"
+  echo "EMAIL_HMAC_KEY=$(openssl rand -base64 32)"
+  echo "PASSWORD_PEPPER=$(openssl rand -base64 32)"
+  echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
+} >> .env
+
+# Update DATABASE_URL in .env so the password matches POSTGRES_PASSWORD.
 
 docker compose up -d
 ```
 
 Open http://localhost:3000.
+
+## Secrets you must back up
+
+Three values in `.env` are **the** load-bearing secrets for this app:
+
+| Variable | What it does | If you lose it | If it leaks |
+|---|---|---|---|
+| `EMAIL_ENC_KEY` | AES-GCM key that encrypts every email at rest | Existing emails are unrecoverable | Attacker can decrypt every email |
+| `EMAIL_HMAC_KEY` | HMAC key for email lookup hashes | Login by email stops working for existing users | Attacker can enumerate which emails are registered |
+| `PASSWORD_PEPPER` | Server-side pepper added before Argon2id | Existing passwords are unrecoverable | Attacker can crack stolen password hashes offline |
+
+`POSTGRES_PASSWORD` is also sensitive but resettable later as long as you can reach the database.
+
+**What this means for you:**
+
+- Generate these once on first install. Don't regenerate on a rebuild — the database won't decrypt anymore.
+- Store a copy in your password manager or secrets vault. Treat them like the master password to a vault: this app is the vault.
+- When you back up the Postgres data volume (`dts_pg_data`), back up the `.env` alongside it. A backup without the keys is useless.
+- Never commit `.env`. It's gitignored for a reason.
 
 ## Development
 
@@ -56,13 +84,12 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Notification settings per user.
+- Spell-check noise on Tailwind classes warnings (hints?)
 - Theme switcher in the footer (full dark (current) / light / dark / system) persisted per-device or per-user.
 - Currency flag glyphs in the picker.
 - Publish tagged releases + images to the GitHub Container Registry.
 - TrueNAS deployment recipe (custom docker-compose).
 - Review possible security bypass on my current API/Web setup for a normal user to gain admin rights
-- **Password reset** via email (needs SMTP wiring).
 
 ### Medium term
 
