@@ -119,8 +119,8 @@ const inviteFailedCount = inviteFailedRaw && /^\d+$/.test(inviteFailedRaw) ? Num
     >
       <span>
         {inviteFailedCount === 1
-          ? "1 invite was skipped — that email isn't a registered user yet."
-          : `${inviteFailedCount} invites were skipped — those emails aren't registered users yet.`}
+          ? "1 invite was skipped - that email isn't a registered user yet."
+          : `${inviteFailedCount} invites were skipped - those emails aren't registered users yet.`}
       </span>
       <a href={`/groups/${id}/settings`} class="font-medium underline">Add members</a>
     </p>

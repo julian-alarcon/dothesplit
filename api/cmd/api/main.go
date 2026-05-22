@@ -92,7 +92,7 @@ func main() {
 	// First-run setup: rotate the install token on every boot until consumed.
 	// The cleartext is logged once as a warning so the operator can grab it
 	// from `docker compose logs api`. Once setup is completed the banner is
-	// suppressed and the token cleartext is gone — only its SHA-256 lives in
+	// suppressed and the token cleartext is gone - only its SHA-256 lives in
 	// app_setup, and even that is unreachable from any post-setup code path.
 	if ct, _, completed, err := setupSvc.EnsureToken(ctx); err != nil {
 		logger.Error("setup ensure token", slog.String("err", err.Error()))

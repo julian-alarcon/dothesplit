@@ -24,7 +24,7 @@ func NewRecurringService(r *repo.RecurringRepo, e *repo.ExpenseRepo, g *repo.Gro
 }
 
 // SetNotifications enables per-member email notifications for materialized
-// recurring runs. Optional — left nil in tests that don't exercise the mailer.
+// recurring runs. Optional - left nil in tests that don't exercise the mailer.
 func (s *RecurringService) SetNotifications(users *repo.UserRepo, n *NotificationService) {
 	s.users = users
 	s.notifications = n

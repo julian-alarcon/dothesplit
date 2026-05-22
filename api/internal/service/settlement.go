@@ -111,7 +111,7 @@ func (s *SettlementService) Create(ctx context.Context, actorID uuid.UUID, in Cr
 }
 
 // formatMoney renders an integer-cent value as e.g. "12.34 EUR". Plain text;
-// no narrowSymbol, no Intl — Go has no equivalent and the email is plain text
+// no narrowSymbol, no Intl - Go has no equivalent and the email is plain text
 // anyway.
 func formatMoney(cents int64, currency string) string {
 	whole := cents / 100

@@ -59,7 +59,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*Use
 		return nil, "", err
 	}
 	if u.EmailVerifiedAt != nil {
-		// Already verified — treat the code as expired/used so we don't leak
+		// Already verified - treat the code as expired/used so we don't leak
 		// information about prior tokens.
 		return nil, "", ErrCodeExpired
 	}
@@ -132,7 +132,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*Use
 
 // ResendVerification invalidates the previous code (if any) and issues a
 // fresh one. To avoid account enumeration the function never returns an
-// error specific to "no such user" or "already verified" — it returns nil
+// error specific to "no such user" or "already verified" - it returns nil
 // silently and the handler always responds 204.
 func (s *AuthService) ResendVerification(ctx context.Context, email string) error {
 	if s.mailer == nil {
@@ -503,7 +503,7 @@ func (s *AuthService) ConfirmPasswordReset(ctx context.Context, email, code, new
 		return nil, "", err
 	}
 
-	// Revoke every existing session — anyone holding an old cookie loses
+	// Revoke every existing session - anyone holding an old cookie loses
 	// access immediately.
 	if err := s.sessions.DeleteAllForUser(ctx, u.ID); err != nil {
 		return nil, "", err

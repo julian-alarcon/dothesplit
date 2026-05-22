@@ -35,7 +35,7 @@ function fmtDate(s: string) {
   {error && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Could not load users.</p>}
   {created && <p class="rounded bg-green-50 px-3 py-2 text-sm text-green-800 mb-4 dark:bg-green-950 dark:text-green-200">User created.</p>}
   {deleted && <p class="rounded bg-green-50 px-3 py-2 text-sm text-green-800 mb-4 dark:bg-green-950 dark:text-green-200">User soft-deleted.</p>}
-  {createErr === "smtp" && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Configure SMTP first — invitations are sent by email so the user can set their own password.</p>}
+  {createErr === "smtp" && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Configure SMTP first - invitations are sent by email so the user can set their own password.</p>}
   {createErr && createErr !== "smtp" && <p class="rounded bg-red-50 px-3 py-2 text-sm text-red-800 mb-4 dark:bg-red-950 dark:text-red-200">Could not create user (email may already be registered).</p>}
 
   <section class="mb-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">

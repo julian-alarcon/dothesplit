@@ -101,7 +101,7 @@ func renderTemplate(template string, vars TemplateVars) (string, string) {
 
 // backoff returns the delay before the next attempt given the attempts that
 // have already happened (i.e. attempts==1 means the first retry). Caps out at
-// dead-letter once attempts reach the partial-index limit (5) — the worker's
+// dead-letter once attempts reach the partial-index limit (5) - the worker's
 // claim query won't pick those rows up again.
 func backoff(attempts int16) time.Duration {
 	switch attempts {
@@ -171,7 +171,7 @@ func truncErr(s string) string {
 // outbox. Returns the SMTP error directly so admin UIs (specifically the
 // "Send test email" button) can surface a precise failure code instead of
 // waiting on the worker's next tick. Most call sites should use Enqueue
-// instead — synchronous send blocks the request.
+// instead - synchronous send blocks the request.
 func (m *MailerService) SendNow(ctx context.Context, to, template string, vars TemplateVars) error {
 	if vars.WebOrigin == "" {
 		vars.WebOrigin = m.webOrigin

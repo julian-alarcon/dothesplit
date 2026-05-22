@@ -117,7 +117,7 @@ func TestAdminAuthzNegative(t *testing.T) {
 
 // TestAdminCreateAndListUsers checks the basic admin create + list flow.
 // CreateUser requires SMTP because the new user receives an email with a
-// 6-digit code to set their own password — admin never types one.
+// 6-digit code to set their own password - admin never types one.
 func TestAdminCreateAndListUsers(t *testing.T) {
 	ts := setup(t)
 	base := ts.srv.URL
@@ -286,7 +286,7 @@ func TestAdminDemoteLastAdminGuard(t *testing.T) {
 	}, adminCookie)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// Demote the other one — leaves the original as last admin.
+	// Demote the other one - leaves the original as last admin.
 	resp, _ = request(t, "PATCH", base+"/v1/admin/users/"+otherID+"/role", map[string]any{
 		"role":     "user",
 		"password": "passwordpassword",

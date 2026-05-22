@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/forgot — fires the password-reset request and redirects to
+// POST /api/forgot: fires the password-reset request and redirects to
 // /reset. Always redirects to /reset whether or not the email is known
 // (the backend already returns 204 unconditionally for enumeration safety,
 // the SSR layer just keeps the same UX on top).

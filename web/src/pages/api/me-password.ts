@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/me-password — handles the change-password form on
+// POST /api/me-password: handles the change-password form on
 // /account/password. Validates that `password_confirmation` matches
 // `new_password` server-side too (we can't trust the inline JS check), then
 // forwards to the Go API which enforces the current-password gate.

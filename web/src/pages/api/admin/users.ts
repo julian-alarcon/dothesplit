@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/admin/users — admin creates a user on behalf. The user receives
+// POST /api/admin/users: admin creates a user on behalf. The user receives
 // a 6-digit code by email so they can set their own password through the
 // /reset flow; admin never types one. SSR origin keeps the session cookie
 // out of client JS.

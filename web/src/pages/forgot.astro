@@ -1,7 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 
-// /forgot is reachable while logged in or out — the redirect to /reset on
+// /forgot is reachable while logged in or out - the redirect to /reset on
 // submit is what matters, the page itself is just a single email field.
 const presetEmail = Astro.url.searchParams.get("email") ?? "";
 ---

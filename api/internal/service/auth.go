@@ -204,7 +204,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, displayName
 		return &RegisterResult{User: out, SessionToken: token, VerificationRequired: false}, nil
 	}
 
-	// SMTP is configured — issue a 6-digit code, enqueue the email, do NOT
+	// SMTP is configured - issue a 6-digit code, enqueue the email, do NOT
 	// open a session. The user must call /v1/auth/verify with the code.
 	code, err := generateNumericCode(6)
 	if err != nil {

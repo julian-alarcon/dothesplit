@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/admin/group-delete — admin-cascade-delete any group.
+// POST /api/admin/group-delete: admin-cascade-delete any group.
 export const POST: APIRoute = async ({ request, redirect }) => {
   const form = await request.formData();
   const cookie = request.headers.get("cookie") ?? "";

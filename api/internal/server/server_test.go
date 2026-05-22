@@ -256,7 +256,7 @@ func registerUser(t *testing.T, base, email, pw, name string) (map[string]any, *
 	}
 	resp, out := request(t, "POST", base+"/v1/auth/register", body, nil)
 	if resp.StatusCode == http.StatusForbidden {
-		// Instance is in first-run setup mode — route this caller through
+		// Instance is in first-run setup mode - route this caller through
 		// the install ceremony instead. Subsequent calls hit /register.
 		tokAny, _ := setupTokens.Load(base)
 		tok, _ := tokAny.(string)
@@ -298,7 +298,7 @@ func TestGoldenPath(t *testing.T) {
 	// Defaults: week_start = 1 (Monday).
 	require.EqualValues(t, 1, me["week_start"])
 
-	// PATCH /v1/me - flip week_start to Sunday.
+	// PATCH /v1/me: flip week_start to Sunday.
 	resp, updMe := request(t, "PATCH", base+"/v1/me", map[string]any{"week_start": 0}, cookieA)
 	require.Equal(t, http.StatusOK, resp.StatusCode, updMe)
 	require.EqualValues(t, 0, updMe["week_start"])
@@ -681,7 +681,7 @@ func TestGoldenPath(t *testing.T) {
 	// Non-member authenticated user cannot delete
 	resp, _ = request(t, "DELETE", base+"/v1/expenses/"+hotelID, nil, cookieC)
 	require.Equal(t, http.StatusForbidden, resp.StatusCode)
-	// Any group member (here B — neither creator nor payer of this expense) can delete.
+	// Any group member (here B - neither creator nor payer of this expense) can delete.
 	resp, snack := request(t, "POST", base+"/v1/groups/"+groupID+"/expenses", map[string]any{
 		"description":  "Snacks",
 		"amount_cents": 200,

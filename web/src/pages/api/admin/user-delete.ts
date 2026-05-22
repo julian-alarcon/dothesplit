@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/admin/user-delete — soft-delete a user. The form must include
+// POST /api/admin/user-delete: soft-delete a user. The form must include
 // `password` (the admin's own) for step-up. On success the user is gone, so
 // we redirect to the list. On failure we stay on the detail page so the
 // admin can see the error in context.

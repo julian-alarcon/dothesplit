@@ -43,7 +43,7 @@ func (r *SetupRepo) Get(ctx context.Context) (*Setup, error) {
 
 // Upsert writes the (hash, generatedAt) pair. The UPDATE branch is gated on
 // `completed_at IS NULL` so a once-completed row can never have its token
-// rotated underneath it — re-opening setup is impossible without manual SQL.
+// rotated underneath it - re-opening setup is impossible without manual SQL.
 func (r *SetupRepo) Upsert(ctx context.Context, hash []byte, at time.Time) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO app_setup (id, token_hash, token_generated_at)

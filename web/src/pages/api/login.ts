@@ -8,7 +8,7 @@ const internalBase =
  * so the browser stores the session cookie on the Astro origin.
  *
  * 403 with code='email_unverified' means the account exists but hasn't
- * confirmed the email yet — redirect to /verify with a "resend" flag so the
+ * confirmed the email yet - redirect to /verify with a "resend" flag so the
  * user can pick up where they left off.
  */
 export const POST: APIRoute = async ({ request, redirect }) => {

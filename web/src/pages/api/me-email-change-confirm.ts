@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   if (res.status === 410) return redirect("/account?error=email_confirm_expired", 302);
   if (res.status === 409) return redirect("/account?error=email_taken", 302);
   if (!res.ok) return redirect("/account?error=email_confirm_invalid&ok=email_requested", 302);
-  // The API rotated the session — forward Set-Cookie back to the browser so
+  // The API rotated the session - forward Set-Cookie back to the browser so
   // the new cookie replaces the old one.
   const headers = new Headers();
   for (const c of res.headers.getSetCookie?.() ?? []) {

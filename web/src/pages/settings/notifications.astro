@@ -23,7 +23,7 @@ try {
     prefs = (await res.json()) as Prefs;
   }
 } catch {
-  // Soft-fail — the form still renders with defaults.
+  // Soft-fail - the form still renders with defaults.
 }
 
 const ok = Astro.url.searchParams.get("ok");
@@ -33,7 +33,7 @@ const ok = Astro.url.searchParams.get("ok");
   <div class="mx-auto flex max-w-xl flex-col gap-3">
     <h1 class="text-2xl font-semibold">Notifications</h1>
     <p class="text-sm text-neutral-600 dark:text-neutral-400">
-      Pick what should reach you. Defaults are off — opt in to anything you want to hear about.
+      Pick what should reach you. Defaults are off - opt in to anything you want to hear about.
     </p>
 
     {ok === "saved" && (

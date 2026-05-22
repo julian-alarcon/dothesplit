@@ -7,7 +7,7 @@
 
 export type MonthHeader = {
   kind: "month-header";
-  /** "YYYY-MM" — used by the client to dedupe across fragments. */
+  /** "YYYY-MM" - used by the client to dedupe across fragments. */
   key: string;
   /** Localized "Month YYYY" label, ready to render. */
   label: string;

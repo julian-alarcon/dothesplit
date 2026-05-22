@@ -10,7 +10,7 @@ import (
 )
 
 // configureSMTP writes a single smtp_config row so the API treats the
-// instance as SMTP-configured. Real connectivity isn't needed — only the
+// instance as SMTP-configured. Real connectivity isn't needed - only the
 // API path that *enqueues* (and triggers the verification flow) is
 // exercised here.
 func configureSMTP(t *testing.T, ts *testStack) {
@@ -30,7 +30,7 @@ func configureSMTP(t *testing.T, ts *testStack) {
 // pinVerificationCode overwrites the most recent unconsumed register-purpose
 // token's code_hash to SHA-256(known) so the test can submit `known`. We
 // can't recover the cleartext from the row (it's hashed) and the email body
-// is plain text in the outbox — this is the simplest equivalent.
+// is plain text in the outbox - this is the simplest equivalent.
 func pinVerificationCode(t *testing.T, ts *testStack, known string) {
 	t.Helper()
 	sum := sha256.Sum256([]byte(known))
@@ -153,14 +153,14 @@ func TestNotificationPrefsRoundTrip(t *testing.T) {
 	base := ts.srv.URL
 	_, cookie := registerUser(t, base, "carol@test.dev", "passwordpassword", "Carol")
 
-	// Initial GET — all flags off (absent or false).
+	// Initial GET - all flags off (absent or false).
 	resp, out := request(t, "GET", base+"/v1/me/notifications", nil, cookie)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	if v, ok := out["notify_settlement"].(bool); ok {
 		require.False(t, v)
 	}
 
-	// PATCH — turn settlement on.
+	// PATCH - turn settlement on.
 	resp, _ = request(t, "PATCH", base+"/v1/me/notifications", map[string]any{
 		"notify_settlement": true,
 	}, cookie)

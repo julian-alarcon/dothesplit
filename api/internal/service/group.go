@@ -38,7 +38,7 @@ func NewGroupService(g *repo.GroupRepo, u *repo.UserRepo, b *repo.BalanceRepo, e
 	return &GroupService{groups: g, users: u, balances: b, email: e}
 }
 
-// SetNotifications wires in the notification service. Optional — if unset,
+// SetNotifications wires in the notification service. Optional - if unset,
 // AddMember silently skips the notification step (used by tests that don't
 // need to exercise the mailer).
 func (s *GroupService) SetNotifications(n *NotificationService) { s.notifications = n }

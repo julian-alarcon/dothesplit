@@ -758,7 +758,7 @@ export interface paths {
          * Reveal the stored SMTP password (admin)
          * @description Decrypts and returns the SMTP password as cleartext. Admin-only and
          *     audit-logged as `admin_view_smtp_password`. The cleartext is never
-         *     returned by `GET /v1/admin/smtp` — admins must use this dedicated
+         *     returned by `GET /v1/admin/smtp` - admins must use this dedicated
          *     endpoint, which makes the action explicit and reviewable.
          */
         get: operations["adminRevealSmtpPassword"];
@@ -799,7 +799,7 @@ export interface paths {
         /**
          * Send a real test email to the admin's own address (admin)
          * @description Sends a plain-text test email through the configured SMTP server to
-         *     the calling admin's verified email address. Synchronous — the SMTP
+         *     the calling admin's verified email address. Synchronous: the SMTP
          *     result is reflected directly in the response (no outbox round-trip),
          *     so failures surface immediately in the admin UI.
          */

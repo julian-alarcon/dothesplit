@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/admin/user-reset-password — scrambles the user's password hash,
+// POST /api/admin/user-reset-password: scrambles the user's password hash,
 // revokes every session, and emails them a 6-digit code so they can set a
 // new password through /reset. Step-up password is the admin's own.
 export const POST: APIRoute = async ({ request, redirect }) => {

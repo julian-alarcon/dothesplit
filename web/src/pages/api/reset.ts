@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/reset — completes the password-reset flow. On 200 the backend
+// POST /api/reset: completes the password-reset flow. On 200 the backend
 // returns a Set-Cookie session for the user; we forward it so they land on
 // /groups already logged in.
 export const POST: APIRoute = async ({ request, redirect }) => {

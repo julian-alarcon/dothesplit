@@ -65,7 +65,7 @@ func (n *NotificationService) UpdatePrefs(ctx context.Context, userID uuid.UUID,
 
 // NotifyIfEnabled looks up the user's pref for the given key and, if true,
 // renders the template and enqueues an outbox row. Silently no-ops when the
-// pref is off, the user is soft-deleted, or the email can't be decrypted —
+// pref is off, the user is soft-deleted, or the email can't be decrypted -
 // notifications are best-effort and must never fail the underlying action.
 func (n *NotificationService) NotifyIfEnabled(ctx context.Context, q repo.Querier, userID uuid.UUID, prefKey, template string, vars TemplateVars) error {
 	u, err := n.users.FindByID(ctx, userID)

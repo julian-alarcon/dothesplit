@@ -19,7 +19,7 @@ guide.
 cp .env.example .env
 
 # Generate the three encryption keys + a Postgres password and append to .env.
-# These end up in the database protecting every email and password — generate
+# These end up in the database protecting every email and password - generate
 # them ONCE and keep a copy somewhere safe. See "Secrets you must back up"
 # below.
 {
@@ -50,7 +50,7 @@ Three values in `.env` are **the** load-bearing secrets for this app:
 
 **What this means for you:**
 
-- Generate these once on first install. Don't regenerate on a rebuild — the database won't decrypt anymore.
+- Generate these once on first install. Don't regenerate on a rebuild - the database won't decrypt anymore.
 - Store a copy in your password manager or secrets vault. Treat them like the master password to a vault: this app is the vault.
 - When you back up the Postgres data volume (`dts_pg_data`), back up the `.env` alongside it. A backup without the keys is useless.
 - Never commit `.env`. It's gitignored for a reason.
@@ -84,12 +84,10 @@ Reasonable next steps, roughly prioritized. Contributions welcome: open an issue
 
 ### Near term
 
-- Spell-check noise on Tailwind classes warnings (hints?)
-- Theme switcher in the footer (full dark (current) / light / dark / system) persisted per-device or per-user.
-- Currency flag glyphs in the picker.
-- Publish tagged releases + images to the GitHub Container Registry.
-- TrueNAS deployment recipe (custom docker-compose).
 - Review possible security bypass on my current API/Web setup for a normal user to gain admin rights
+
+- Publish tagged releases + images to the GitHub Container Registry.
+- TrueNAS deployment recipe or instructions
 
 ### Medium term
 

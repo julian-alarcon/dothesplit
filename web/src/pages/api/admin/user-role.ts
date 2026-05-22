@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/admin/user-role — promote or demote a user. Step-up password
+// POST /api/admin/user-role: promote or demote a user. Step-up password
 // required. Redirects back to the per-user detail page so the admin sees
 // the result inline.
 export const POST: APIRoute = async ({ request, redirect }) => {

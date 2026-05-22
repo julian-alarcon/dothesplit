@@ -34,7 +34,7 @@
   --color-ring: var(--ring);
 }
 
-/* Light theme is the default — applied via :root so it also wins if the
+/* Light theme is the default - applied via :root so it also wins if the
    boot script ever fails to set data-theme on <html>. */
 :root {
   color-scheme: light;
@@ -75,7 +75,7 @@
   --cat-no-category:   oklch(65% 0 0);
 }
 
-/* New OKLCH-driven dark theme — deep blue-grey background with a green primary.
+/* New OKLCH-driven dark theme - deep blue-grey background with a green primary.
    The --color-neutral-* overrides remap Tailwind's built-in true-grey ramp
    (theme.css :255-265) to a cohesive blue-tinted scale anchored on the
    semantic tokens below. Effect: every existing `dark:bg-neutral-900` /
@@ -188,7 +188,7 @@ dialog[open] .overflow-auto {
 /* Per-slug rotation override for CategoryIcon's <svg>. The `other` slug
    reuses FA's `meteor` glyph rotated 270° so it points down-left like the
    thumbtack it replaced. transform-box: fill-box anchors the rotation to
-   the SVG's content box rather than the viewBox corner — without it FA's
+   the SVG's content box rather than the viewBox corner - without it FA's
    asymmetric 640×640 viewBox makes the rotated glyph drift off-center. */
 svg[data-icon-slug="other"] {
   transform: rotate(270deg);
@@ -362,7 +362,7 @@ svg[data-icon-slug="other"] {
   appearance: none;
   /* FA Solid chevron-down. currentColor doesn't resolve inside url() data-URIs
      for SVG fills, but recent Chromium/Firefox support it via the foreignObject
-     trick — we keep the literal hex fallbacks split per theme below. */
+     trick - we keep the literal hex fallbacks split per theme below. */
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23404040' d='M297.4 470.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 402.7L150.6 233.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.625rem center;
@@ -379,8 +379,8 @@ svg[data-icon-slug="other"] {
 
 /* Currency-aware text input: typed value sits flush right, with the live
    formatted preview taking over on blur (handled by web/src/scripts/currency-input.ts).
-   Bumped to 18px (vs the default field-input 14px) so currency amounts —
-   the most scanned values on the add/edit-expense and settlement forms —
+   Bumped to 18px (vs the default field-input 14px) so currency amounts -
+   the most scanned values on the add/edit-expense and settlement forms -
    read clearly without zooming on mobile. */
 .field-input-currency {
   text-align: right;
@@ -513,7 +513,7 @@ svg[data-icon-slug="other"] {
 
 .toggle-track {
   /* shrink-0 keeps the track at its declared 36×20 box even when the
-     adjacent label wraps onto multiple lines in a narrow viewport — flex
+     adjacent label wraps onto multiple lines in a narrow viewport - flex
      children can otherwise be compressed to fit, which produces the
      uneven track widths visible on mobile. */
   @apply relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors;

@@ -84,7 +84,7 @@ func (s *Server) AdminCreateUser(c *gin.Context) {
 			writeErr(c, http.StatusConflict, "email_taken", "email already registered")
 		case errors.Is(err, service.ErrSmtpUnconfigured):
 			writeErr(c, http.StatusServiceUnavailable, "smtp_unconfigured",
-				"configure SMTP before inviting users — they receive a welcome email to set their password")
+				"configure SMTP before inviting users - they receive a welcome email to set their password")
 		default:
 			writeErr(c, http.StatusBadRequest, "bad_request", err.Error())
 		}

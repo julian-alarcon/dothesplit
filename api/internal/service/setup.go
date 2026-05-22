@@ -52,7 +52,7 @@ func (s *SetupService) Locked(ctx context.Context) (bool, error) {
 // pending it rotates the token (new random 32 bytes, new SHA-256 hash, same
 // row) and returns the cleartext so the boot banner can print it. Once the
 // ceremony has completed, returns alreadyCompleted=true and an empty
-// cleartext — there is no path that re-issues a post-install token.
+// cleartext - there is no path that re-issues a post-install token.
 //
 // Rotation rationale: we never persist the cleartext anywhere. If the
 // operator restarts before completing setup, they pick up the latest
@@ -86,10 +86,10 @@ func (s *SetupService) EnsureToken(ctx context.Context) (cleartext string, fresh
 //     blocks until first commits/rolls back.
 //  2. Bail out if completed_at is already set (someone else just won).
 //  3. constant-time compare SHA-256(supplied) vs stored hash.
-//  4. AuthService.RegisterTx — bootstrap path applies because count==0
+//  4. AuthService.RegisterTx: bootstrap path applies because count==0
 //     under the same tx, so the new user gets role='admin' and a
 //     'bootstrap_admin' audit row is inserted.
-//  5. SetupRepo.Complete — stamps completed_at + completed_by.
+//  5. SetupRepo.Complete: stamps completed_at + completed_by.
 //  6. AuditRepo.Insert with action='setup_completed'.
 //  7. Commit. Session is issued post-tx (issuance failure means the operator
 //     just logs in normally; the install state is already committed).
@@ -127,7 +127,7 @@ func (s *SetupService) CompleteWithToken(ctx context.Context, tokenCT, email, di
 		return nil, "", err
 	}
 
-	// Bootstrap admin is auto-verified — they typed their email into the
+	// Bootstrap admin is auto-verified - they typed their email into the
 	// setup form themselves, and SMTP definitionally isn't configured yet.
 	if _, err := tx.Exec(ctx, `UPDATE users SET email_verified_at = now() WHERE id = $1`, repoUser.ID); err != nil {
 		return nil, "", err

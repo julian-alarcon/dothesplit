@@ -11,7 +11,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  // Always redirect with a friendly notice — the API also always returns
+  // Always redirect with a friendly notice - the API also always returns
   // 204 to avoid account enumeration.
   return redirect(
     `/verify?email=${encodeURIComponent(email)}&resent=1`,

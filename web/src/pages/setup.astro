@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 
 // Anyone landing here while setup is unlocked is welcome. If setup is
-// already done, the install ceremony is closed — bounce them to /login so
+// already done, the install ceremony is closed - bounce them to /login so
 // the page can never be used to leak install-state through stale forms.
 if (Astro.locals.setupLocked) return Astro.redirect("/login");
 
@@ -24,7 +24,7 @@ const errorMessage = err ? (errorMessages[err] ?? "Could not complete setup.") :
     <p class="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
       This is the one-time install ceremony. The first account created here
       is the instance admin. The setup token was printed to the API container
-      log on every boot until now — grab it via <code class="rounded bg-neutral-100 px-1 py-0.5 dark:bg-neutral-800">docker compose logs api</code>.
+      log on every boot until now - grab it via <code class="rounded bg-neutral-100 px-1 py-0.5 dark:bg-neutral-800">docker compose logs api</code>.
     </p>
 
     {errorMessage && (

@@ -2,7 +2,7 @@
 // to a stored override when <html data-tz-override="…"> is set). SSR emits
 // the canonical UTC ISO string in the `datetime` attribute and a server-
 // rendered fallback in the text content; this script replaces the text with
-// a locale-aware string after first paint. Runs once on DOMContentLoaded —
+// a locale-aware string after first paint. Runs once on DOMContentLoaded -
 // pages that swap content (e.g. activity-fragment) call refresh() manually.
 
 type FormatName = "datetime-short" | "date-medium";

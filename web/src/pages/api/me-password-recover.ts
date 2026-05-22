@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 const internalBase =
   process.env.API_BASE_URL_INTERNAL ?? "http://localhost:8080";
 
-// POST /api/me-password-recover — invoked by the "Recover password by email"
+// POST /api/me-password-recover: invoked by the "Recover password by email"
 // button on /account/password. Looks up the caller's own email, fires the
 // password-reset request through the normal forgot-password backend path
 // (so the user lands in the same /reset code-paste flow as a logged-out

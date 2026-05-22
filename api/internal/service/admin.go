@@ -180,7 +180,7 @@ func (s *AdminService) ListUsers(ctx context.Context, limit, offset int, include
 
 // CreateUser provisions a new account on behalf of an admin. The user's
 // email is auto-verified (the admin vouched for it) and their password is
-// scrambled — the only way to log in is via the welcome+reset email this
+// scrambled - the only way to log in is via the welcome+reset email this
 // flow enqueues, which sends a 6-digit code through the standard /reset
 // flow. SMTP must be configured; otherwise the call returns
 // ErrSmtpUnconfigured and nothing is written.
@@ -233,7 +233,7 @@ func (s *AdminService) CreateUser(ctx context.Context, actorID uuid.UUID, email,
 		return nil, err
 	}
 	if err := s.auth.EnqueuePasswordResetTx(ctx, tx, u, email); err != nil {
-		// Surfaces ErrSmtpUnconfigured cleanly — admin handler maps this
+		// Surfaces ErrSmtpUnconfigured cleanly - admin handler maps this
 		// to a 503 telling the operator to configure SMTP first. The user
 		// row gets rolled back along with the deferred Rollback above.
 		return nil, err
@@ -308,7 +308,7 @@ func (s *AdminService) DeleteUser(ctx context.Context, actorID, targetID uuid.UU
 // stops working immediately, revokes every active session for them, and
 // emails them a 6-digit code so they can pick a new password through the
 // /reset flow. The admin never types a temporary password. Returns
-// ErrSmtpUnconfigured when SMTP isn't set up — admin handler maps that to
+// ErrSmtpUnconfigured when SMTP isn't set up - admin handler maps that to
 // 503 so the operator knows to configure SMTP first.
 func (s *AdminService) ResetUserPassword(ctx context.Context, actorID, targetID uuid.UUID, ip, ua string) error {
 	target, err := s.users.FindByID(ctx, targetID)
@@ -357,7 +357,7 @@ func (s *AdminService) ResetUserPassword(ctx context.Context, actorID, targetID 
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
-	// Sessions are deleted *after* commit — if the email enqueue rolled
+	// Sessions are deleted *after* commit - if the email enqueue rolled
 	// back we leave the legitimate user logged in.
 	return s.sessions.DeleteAllForUser(ctx, targetID)
 }

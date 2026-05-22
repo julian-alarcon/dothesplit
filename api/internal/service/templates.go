@@ -14,7 +14,7 @@ import (
 //   - many transactional email providers rewrite every `<a href>` into a
 //     tracking redirector even on transactional mail; bare URLs in
 //     plain-text bodies are left alone, so users can copy them safely,
-//   - the security model uses a 6-digit code the user types — there are no
+//   - the security model uses a 6-digit code the user types - there are no
 //     links to click in the verification flow at all.
 
 // TemplateVars carries the values rendered into each template. Not every
@@ -29,21 +29,21 @@ type TemplateVars struct {
 	NewEmail    string
 	// WebOrigin is the public base URL of this instance (e.g.
 	// "https://split.example.com"). Rendered as bare text in templates that
-	// reference the app — never wrapped in `<a>` so transactional providers
+	// reference the app - never wrapped in `<a>` so transactional providers
 	// can't rewrite it into a tracking URL.
 	WebOrigin string
 }
 
 // emailHeader is the masthead every template starts with. Underlining the
 // product name with `=` is the convention used by RFC docs, Gnu mail, and
-// most plain-text transactional email — it survives every renderer because
+// most plain-text transactional email - it survives every renderer because
 // it's just text and doesn't depend on font metrics.
 const emailHeader = "DoTheSplit\n==========\n\n"
 
 // RenderVerifyRegister builds the registration verification email. The
 // verification URL is rendered as bare plain text (not an <a href>) so that
-// transactional providers — many of which rewrite every HTML link into a
-// tracker URL — leave it intact and the user can copy it. The URL
+// transactional providers - many of which rewrite every HTML link into a
+// tracker URL - leave it intact and the user can copy it. The URL
 // pre-fills the recipient's email so they only have to paste the code on
 // the destination page.
 func RenderVerifyRegister(v TemplateVars) (subject, body string) {
@@ -82,8 +82,8 @@ func RenderWelcome(v TemplateVars) (subject, body string) {
 // forgot-password flow and admin-driven account creation/reset. The body
 // keeps both paths legible without surfacing the distinction (the user
 // just sees a code and where to enter it). The reset URL is bare plain
-// text — many transactional providers rewrite <a href> targets to a
-// tracker URL but leave plain-text URLs alone — and pre-fills the
+// text - many transactional providers rewrite <a href> targets to a
+// tracker URL but leave plain-text URLs alone - and pre-fills the
 // recipient's email so the user only has to paste the code. Critically,
 // sending the user straight to /reset (instead of letting them navigate
 // via /forgot) avoids triggering a second RequestPasswordReset, which
@@ -146,7 +146,7 @@ func RenderSettlementCreated(v TemplateVars) (subject, body string) {
 }
 
 // RenderSmtpTest is the body sent by the admin "Send test email" button.
-// Plain text, bare URL — transactional providers typically only rewrite
+// Plain text, bare URL - transactional providers typically only rewrite
 // links in `<a href>` tags, so a raw URL in a text/plain body stays intact
 // and admins can copy it.
 func RenderSmtpTest(v TemplateVars) (subject, body string) {

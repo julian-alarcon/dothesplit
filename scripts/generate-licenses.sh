@@ -133,7 +133,7 @@ done <<<"$FRONTEND_PKGS"
 frontend_json+="]"
 
 # Assemble final credits.json. Font Awesome CC BY 4.0 attribution block is
-# the legally required bit — keep all four elements (creator, license URL,
+# the legally required bit - keep all four elements (creator, license URL,
 # license page, modification statement).
 mkdir -p "$(dirname "$OUT_JSON")"
 jq -n \

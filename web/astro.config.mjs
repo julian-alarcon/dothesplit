@@ -7,7 +7,7 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [icon()],
-  // Self-hosted Inter — keeps font bytes on our origin so the app never reaches
+  // Self-hosted Inter - keeps font bytes on our origin so the app never reaches
   // fonts.googleapis.com / fonts.gstatic.com. License text and attribution live
   // in src/assets/fonts/inter/OFL.txt and the /credits page.
   fonts: [
@@ -18,7 +18,7 @@ export default defineConfig({
       fallbacks: ["system-ui", "sans-serif"],
       options: {
         // Only the weights we actually use: 400 Regular and 600 SemiBold.
-        // `font-medium` (500) is synthesized by the browser from 400 — no
+        // `font-medium` (500) is synthesized by the browser from 400 - no
         // separate file needed. Italics and 700-Bold were preloaded but
         // never actually rendered, costing ~345 KB on every page load.
         variants: [

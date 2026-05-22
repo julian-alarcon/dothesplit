@@ -21,7 +21,7 @@ const notConfigured = response.status === 404;
 const saved = Astro.url.searchParams.get("saved");
 
 // Pre-load the stored cleartext password so "what's in the field is what's
-// saved" — empty field on save means wipe, unchanged value means keep. The
+// saved" - empty field on save means wipe, unchanged value means keep. The
 // fetch is audit-logged on the backend (`admin_view_smtp_password`). Skip
 // the fetch right after a save: the page is already redirected here from
 // /api/admin/smtp, the password didn't change between then and now, and we
