@@ -15,7 +15,7 @@ Open-source expense-sharing app.
 - Backend: Go with [Gin](https://github.com/gin-gonic/gin) HTTP web framework
 - Frontend: Astro + Tailwind v4 (mobile-first, PWA-ready; future mobile via wrapper)
 - Database: PostgreSQL 18 (encryption at rest)
-- Infra: Docker Compose on TrueNAS (services: `postgres`, `api`, `web`)
+- Infra: Docker Compose on TrueNAS (services: `postgres`, `migrate`, `api`, `worker`, `web`)
 
 ## Repo Structure
 
@@ -70,50 +70,20 @@ Rules:
 
 ## API (REST JSON, OpenAPI-first, versioned under `/v1`)
 
-Auth:
+The complete contract lives in [docs/openapi.yaml](docs/openapi.yaml) - that's the source of truth, not this file. Surface areas, in plain English:
 
-- POST /v1/auth/register
-- POST /v1/auth/login
-- POST /v1/auth/logout
-- GET  /v1/me
+- **Auth**: register, login, logout, email verification, password reset by code.
+- **Setup**: first-run install ceremony (token-gated admin bootstrap).
+- **Me**: profile, password change, email change, timezone, avatar (8x8 PNG), notification prefs, soft-delete.
+- **Groups**: CRUD, membership (add/remove), default split for 2-member groups.
+- **Expenses**: CRUD per group, edit-history (revisions), three split modes (equal/exact/percent).
+- **Balances & settlements**: net balances, simplified "X owes Y", settlement CRUD.
+- **Recurring**: CRUD per group, materialized by the worker on each cadence tick.
+- **Activity**: paginated merged feed of expenses + settlements per group.
+- **Categories**: read-only seeded list.
+- **Admin**: users (list, create, role, password reset, soft-delete), groups oversight, SMTP config + send-test, audit log.
 
-Groups:
-
-- GET    /v1/groups
-- POST   /v1/groups
-- PATCH  /v1/groups/{id}
-- DELETE /v1/groups/{id}
-- POST   /v1/groups/{id}/members
-
-Expenses:
-
-- GET    /v1/groups/{id}/expenses
-- POST   /v1/groups/{id}/expenses
-- GET    /v1/expenses/{id}
-- PATCH  /v1/expenses/{id}           (description / amount / category)
-- DELETE /v1/expenses/{id}
-- GET    /v1/expenses/{id}/revisions
-
-Balances & settlements:
-
-- GET  /v1/groups/{id}/balances
-- GET  /v1/groups/{id}/settlements
-- POST /v1/groups/{id}/settlements
-
-Recurring:
-
-- GET    /v1/groups/{id}/recurring-expenses
-- POST   /v1/groups/{id}/recurring-expenses
-- DELETE /v1/recurring-expenses/{id}
-
-Categories:
-
-- GET /v1/categories
-
-Health (unversioned):
-
-- GET /healthz
-- GET /readyz
+Health probes (`/healthz`, `/readyz`) are the only unversioned routes.
 
 ## Security
 

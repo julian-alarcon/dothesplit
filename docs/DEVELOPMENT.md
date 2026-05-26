@@ -57,19 +57,84 @@ cd api && go test ./internal/server/ -run TestGoldenPath -v    # one test
 
 The E2E suite in [api/internal/server/server_test.go](../api/internal/server/server_test.go) covers the full golden path (register, login, group, members, expense split modes, balances, settlements, soft-delete, category + revision log, payer swap, logout).
 
-**Web**: no test harness wired in yet; rely on `astro check` + manual smoke.
+**Web**: two layers.
+
+- Unit (vitest, jsdom) under `web/src/**/*.test.ts`. Pure helpers only - the canvas-touching avatar pipeline isn't exercised here, only its color math. Run with `cd web && npm test` (or `npm run test:watch`).
+- E2E (Playwright, Chromium) under `web/tests/e2e/`. Requires the full docker stack already running and the install token from `docker compose logs api`:
+
+  ```bash
+  docker compose up -d --build
+  TOKEN=$(docker compose logs api | grep -oE 'token=[A-Za-z0-9_-]+' | head -1 | cut -d= -f2)
+  cd web && SETUP_TOKEN=$TOKEN npm run test:e2e
+  ```
+
+  CI runs the same flow on every PR; locally it's optional, useful when changing SSR-to-API wiring.
 
 ## Build the container images
+
+For local dev, build via compose. **Production deployments should pull pinned images from GHCR** (see "Releasing" below) - never build from `main` on a deployment host.
 
 ```bash
 docker compose build                 # build all three images (api, web, worker shares api)
 docker compose build api             # rebuild just one
+make up                              # rebuild + start, stamping BUILD_COMMIT + BUILD_VERSION
 ```
 
 Images:
 
-- `dothesplit-api` - multi-stage Go build → distroless final stage (serves `/api` and the `/worker` command).
-- `dothesplit-web` - multi-stage Node 24 build → Astro SSR standalone server.
+- `dothesplit-api` - multi-stage Go build → distroless final stage (serves `/api` and the `/worker` command). `-ldflags` stamps `main.version` and `main.commit` from the build args, surfaced at `/healthz`.
+- `dothesplit-web` - multi-stage Node 24 build → Astro SSR standalone server. `BUILD_COMMIT` + `BUILD_VERSION` reach the SSR runtime as `process.env.*` and feed the page footer.
+
+The `make up` target reads the top-level `VERSION` file (release-please-managed) for `BUILD_VERSION` and the current git short SHA for `BUILD_COMMIT`.
+
+## Releasing
+
+Releases are automated by [release-please](https://github.com/googleapis/release-please-action) on every push to `main`. You don't run release commands by hand - you write conventional commits and merge the Release PR when it looks right.
+
+### The flow
+
+1. **Land changes on `main`** with [conventional commit titles](https://www.conventionalcommits.org). Commit type drives the bump:
+
+   | Type                       | Bump  | Example                                            |
+   | -------------------------- | ----- | -------------------------------------------------- |
+   | `fix:`                     | patch | `fix(api): reject empty currency on group create`  |
+   | `feat:`                    | minor | `feat(web): currency picker flag glyphs`           |
+   | `feat!:` / `BREAKING CHANGE` footer | major | `feat(api)!: drop /v1/legacy/expenses` |
+   | `chore:`, `docs:`, `style:`, `test:`, `ci:`, `refactor:` | none | (still appears in CHANGELOG under their section)   |
+
+2. **release-please opens (or updates) a Release PR** named `chore(main): release X.Y.Z`. It bumps `web/package.json` and the top-level `VERSION` file, regenerates `CHANGELOG.md`. Review it like any other PR. If you don't like the proposed version, override via a commit footer (`Release-As: 1.0.0`) and push - the PR will rewrite itself.
+
+3. **Merging the Release PR** auto-creates the git tag `vX.Y.Z` and a GitHub Release with the changelog body.
+
+4. **The tag triggers two workflows in parallel**:
+   - [`publish.yml`](../.github/workflows/publish.yml) builds multi-arch (`linux/amd64,linux/arm64`) images for `api` and `web`, pushes to `ghcr.io/julian-alarcon/dothesplit-{api,web}` with tags `:vX.Y.Z`, `:vX.Y`, `:vX`, `:latest`, plus a build provenance attestation.
+   - [`compliance.yml`](../.github/workflows/compliance.yml) regenerates SBOMs + `THIRD_PARTY_LICENSES.md` and attaches them to the GitHub Release.
+
+5. **Every push to `main`** (including merges that are not the Release PR) also triggers `publish.yml`, which pushes `:dev`, `:main`, and `:sha-<short>` tags. The `:dev` tag tracks the latest `main` and is appropriate for a staging environment.
+
+### Where the version surfaces
+
+| Location                             | Source                                    |
+| ------------------------------------ | ----------------------------------------- |
+| `web/package.json` `version`         | release-please bump on merge              |
+| Top-level `VERSION` file             | release-please bump on merge              |
+| GitHub Release page                  | release-please on PR merge                |
+| `ghcr.io/.../dothesplit-{api,web}:vX.Y.Z` | `publish.yml` on tag                 |
+| API `GET /healthz` JSON              | `-ldflags` baked in by `api/Dockerfile`   |
+| Web page footer                      | `BUILD_VERSION` env baked in by `web/Dockerfile` |
+
+### Emergency manual release
+
+Only when release-please is broken or the queued Release PR can't be merged in time:
+
+```bash
+# 1. Bump VERSION + web/package.json + .release-please-manifest.json BY HAND, commit.
+# 2. Tag and push.
+git tag -a v1.2.3 -m "v1.2.3"
+git push origin v1.2.3
+```
+
+The tag still triggers `publish.yml` and `compliance.yml`. The CHANGELOG entry won't be auto-generated, so write it manually in the GitHub Release UI. **Do not push manual version bumps to `main` outside a release-please PR** - it desyncs the manifest and the next automated PR will produce a wrong version.
 
 ## Run
 
@@ -186,12 +251,24 @@ Today there's no rotation tool - that's a deliberate v1 cut. If a key leaks, the
 
 ### Updating a running deployment
 
+For production deployments, **pull pinned images from GHCR** instead of building from `main` on the host. The release pipeline already built and signed them.
+
+```bash
+# On the deployment host, after a new release is tagged:
+docker compose pull                  # pull the pinned :vX.Y.Z (or :latest) images
+docker compose up -d                 # restart services with the new images
+```
+
+Migrations run automatically via the `migrate` one-shot on every `up`.
+
+For staging, point compose at the `:dev` tag (which tracks `main`) and pull on a schedule, or wire a webhook to your registry. For dev hosts where you want to reflect uncommitted local changes, the legacy build-from-source path still works:
+
 ```bash
 git pull
 docker compose up -d --build         # rebuild only changed services
 ```
 
-Migrations run automatically via the `migrate` one-shot on every `up`.
+But never do that on a release-tracking deployment - it desyncs from the version stamps in the image and breaks the "what's running?" answer at `/healthz`.
 
 ### Major Postgres upgrades
 
@@ -247,4 +324,4 @@ Run `make help` for the full list. The ones you'll actually reach for:
 | `make up`         | `docker compose up -d --build`, baking current SHA in              |
 | `make compliance` | Regenerate `THIRD_PARTY_LICENSES.md` + CycloneDX SBOMs into `sbom/` |
 
-**`make up`** computes `BUILD_COMMIT=$(git rev-parse --short HEAD)` and passes it to the web Dockerfile as a build arg. The SHA ends up in `process.env.BUILD_COMMIT` inside the Astro SSR process, and the shared [`Base.astro`](../web/src/layouts/Base.astro) layout renders a small footer on every page with a link back to `https://github.com/julian-alarcon/dothesplit/commit/<sha>`. When building outside a git checkout (`docker compose build` directly, a tarball, etc.), `BUILD_COMMIT` defaults to `dev` and the footer shows `build dev` with no link.
+**`make up`** computes `BUILD_COMMIT=$(git rev-parse --short HEAD)` and `BUILD_VERSION=$(cat VERSION)` and passes both to every Dockerfile as build args. The web image gets them in `process.env.*` and the shared [`Base.astro`](../web/src/layouts/Base.astro) layout renders a footer with the version (linking to the GitHub Release) and the commit (linking to the commit page). The api/worker binary gets them via `-ldflags` and surfaces them at `GET /healthz`. When building outside a git checkout (`docker compose build` directly, a tarball, etc.), both default to `dev` and the surfaces show `dev` with no links.

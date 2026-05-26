@@ -10,7 +10,7 @@ DoTheSplit - a expense-sharing app.
 
 - **Backend**: Go 1.25, Gin, pgx/v5, `golang-migrate`, `oapi-codegen`. Source in [api/](api/).
 - **Frontend**: Astro 6 (SSR, `@astrojs/node`) + Tailwind v4. No React islands, no component library - pages are pure `.astro` + tiny ES-module scripts under [web/src/scripts/](web/src/scripts/). Source in [web/](web/).
-- **Database**: PostgreSQL 16. Migrations in [api/migrations/](api/migrations/).
+- **Database**: PostgreSQL 18. Migrations in [api/migrations/](api/migrations/).
 - **Worker**: separate Go binary for recurring expenses ([api/cmd/worker/](api/cmd/worker/)).
 - **Infra**: Docker Compose on TrueNAS LAN (HTTP-only - see "Cookie naming" below).
 
@@ -144,4 +144,4 @@ Run everything with `make test`. Go alone: `cd api && go test ./... -race`. Web 
 
 Deferred from v1 - raise with the user before adding:
 
-- Password reset via SMTP, OAuth, expense edits, multi-currency FX conversion, PWA offline, real-time sync, file receipts, audit log UI, pending-invite flow.
+- OAuth / passkeys, multi-currency FX conversion, PWA offline mode, real-time sync (SSE / WebSockets), file receipts / expense attachments, CSV import / export, full-resolution avatars (8x8 GDPR-minimisation is deliberate), account hard-delete (soft delete preserves co-members' ledgers).
