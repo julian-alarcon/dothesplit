@@ -29,7 +29,9 @@ test("first-run setup mints an admin", async ({ page }) => {
   test.skip(!TOKEN, "SETUP_TOKEN env var is required for E2E (see docker compose logs api)");
 
   await page.goto("/setup");
-  await expect(page.getByRole("heading", { name: /first[- ]run setup/i })).toBeVisible();
+  // The setup page's heading is the welcome banner; the form is the only
+  // input[name="token"] in the app, which is a tighter assertion than text.
+  await expect(page.locator('input[name="token"]')).toBeVisible();
 
   await page.locator('input[name="token"]').fill(TOKEN!);
   await page.locator('input[name="display_name"]').fill(ADMIN_NAME);
