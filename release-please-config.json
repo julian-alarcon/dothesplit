@@ -10,7 +10,6 @@
       "package-name": "dothesplit",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        "VERSION",
         {
           "type": "json",
           "path": "web/package.json",

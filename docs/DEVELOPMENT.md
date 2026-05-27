@@ -102,7 +102,7 @@ Releases are automated by [release-please](https://github.com/googleapis/release
    | `feat!:` / `BREAKING CHANGE` footer | major | `feat(api)!: drop /v1/legacy/expenses` |
    | `chore:`, `docs:`, `style:`, `test:`, `ci:`, `refactor:` | none | (still appears in CHANGELOG under their section)   |
 
-2. **release-please opens (or updates) a Release PR** named `chore(main): release X.Y.Z`. It bumps `web/package.json` and the top-level `VERSION` file, regenerates `CHANGELOG.md`. Review it like any other PR. If you don't like the proposed version, override via a commit footer (`Release-As: 1.0.0`) and push - the PR will rewrite itself.
+2. **release-please opens (or updates) a Release PR** named `chore(main): release X.Y.Z`. It bumps `web/package.json` (the single version source of truth) and regenerates `CHANGELOG.md`. Review it like any other PR. If you don't like the proposed version, override via a commit footer (`Release-As: 1.0.0`) and push - the PR will rewrite itself.
 
 3. **Merging the Release PR** auto-creates the git tag `vX.Y.Z` and a GitHub Release with the changelog body.
 
@@ -114,21 +114,20 @@ Releases are automated by [release-please](https://github.com/googleapis/release
 
 ### Where the version surfaces
 
-| Location                             | Source                                    |
-| ------------------------------------ | ----------------------------------------- |
-| `web/package.json` `version`         | release-please bump on merge              |
-| Top-level `VERSION` file             | release-please bump on merge              |
-| GitHub Release page                  | release-please on PR merge                |
-| `ghcr.io/.../dothesplit-{api,web}:vX.Y.Z` | `publish.yml` on tag                 |
-| API `GET /healthz` JSON              | `-ldflags` baked in by `api/Dockerfile`   |
-| Web page footer                      | `BUILD_VERSION` env baked in by `web/Dockerfile` |
+| Location                                  | Source                                                |
+| ----------------------------------------- | ----------------------------------------------------- |
+| `web/package.json` `version`              | release-please bump on merge (single source of truth) |
+| GitHub Release page                       | release-please on PR merge                            |
+| `ghcr.io/.../dothesplit-{api,web}:vX.Y.Z` | `publish.yml` on tag                                  |
+| API `GET /healthz` JSON                   | `-ldflags` baked in by `api/Dockerfile`               |
+| Web page footer                           | `BUILD_VERSION` env baked in by `web/Dockerfile`      |
 
 ### Emergency manual release
 
 Only when release-please is broken or the queued Release PR can't be merged in time:
 
 ```bash
-# 1. Bump VERSION + web/package.json + .release-please-manifest.json BY HAND, commit.
+# 1. Bump web/package.json + .release-please-manifest.json BY HAND, commit.
 # 2. Tag and push.
 git tag -a v1.2.3 -m "v1.2.3"
 git push origin v1.2.3

@@ -117,7 +117,7 @@ services:
       dockerfile: web/Dockerfile
       args:
         # Baked into the image so the footer can show which revision is live.
-        # `make up` populates both from the working tree (git short SHA + VERSION file).
+        # `make up` populates both from the working tree (git short SHA + web/package.json version).
         BUILD_COMMIT: ${BUILD_COMMIT:-dev}
         BUILD_VERSION: ${BUILD_VERSION:-dev}
     depends_on:
