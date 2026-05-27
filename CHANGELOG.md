@@ -1,0 +1,75 @@
+# Changelog
+
+## [0.4.0](https://github.com/julian-alarcon/dothesplit/compare/v0.3.0...v0.4.0) (2026-05-27)
+
+
+### Features
+
+* add categories and imnprove selection ([82a9dc8](https://github.com/julian-alarcon/dothesplit/commit/82a9dc86270001d3e5b7b592c242c87bc737444c))
+* add footer with build info ([780113f](https://github.com/julian-alarcon/dothesplit/commit/780113f429dbe8987756ff5bb24ab10690225d85))
+* add license attribution and CycloneDX SBOM compliance pipeline ([0edf4a2](https://github.com/julian-alarcon/dothesplit/commit/0edf4a26a810d73465936fd74cf1dac6da78139d))
+* add recurrent expenses ([401a52d](https://github.com/julian-alarcon/dothesplit/commit/401a52d9a678566b96991f6f83f2432b8150965e))
+* allow members management in groups (leave/remove) ([96873a4](https://github.com/julian-alarcon/dothesplit/commit/96873a4a25b633d512391bdf42071546e3afac27))
+* **api,db:** email verification, plain-text mailer, change-email, notification prefs, admin SMTP send-test + reveal ([5c60003](https://github.com/julian-alarcon/dothesplit/commit/5c6000317c42c8938eca92179e4581eb1a118378))
+* **api,db:** forgot/reset password by code, admin invite-by-email, drop must_change_password ([e9afb17](https://github.com/julian-alarcon/dothesplit/commit/e9afb17ca6e9f25e41ddc2fd0f80721f032479a0))
+* **api,web,db:** admin role with users/groups/SMTP/audit and step-up password ([68ba7fa](https://github.com/julian-alarcon/dothesplit/commit/68ba7faec5854133f11184dd60a78474978324ba))
+* **api,web:** settlements in activity feed with detail page ([f619839](https://github.com/julian-alarcon/dothesplit/commit/f619839c29a3c15bf1db00e5efcab1e6c115668a))
+* **api:** add --healthcheck self-probe for distroless image ([1c3f3e8](https://github.com/julian-alarcon/dothesplit/commit/1c3f3e87d24a6cda04aeefbf03fd4371da061572))
+* **api:** support *_FILE convention for secret env vars ([8229e96](https://github.com/julian-alarcon/dothesplit/commit/8229e9631af3043d650dc8869b7aaf0c20c4f076))
+* automated release pipeline with GHCR publishing ([c402538](https://github.com/julian-alarcon/dothesplit/commit/c402538062171215496fa422b7f61a41f8ef1cc2))
+* custom expenses splitting implemented ([998ff4b](https://github.com/julian-alarcon/dothesplit/commit/998ff4bde13362c292e3e37bf8279b301534da8c))
+* **dev:** switch to AGENTS.md ([e998590](https://github.com/julian-alarcon/dothesplit/commit/e998590553d630646c17dc2e23e7bc50ca919350))
+* **docker:** harden compose with read-only fs, dropped caps, healthchecks, loopback ports ([e25936d](https://github.com/julian-alarcon/dothesplit/commit/e25936d9b6360ad68dc3bb4f68eac375c47f99ae))
+* **docs:** improved features information ([68bd513](https://github.com/julian-alarcon/dothesplit/commit/68bd513c092a238f9f7d0df2350a7088a9b11659))
+* group default split percentage ([ff92825](https://github.com/julian-alarcon/dothesplit/commit/ff928250e243a85c1c059b788e1cd5b7922e23bf))
+* increase image pixels to 8x8 ([31e1c0a](https://github.com/julian-alarcon/dothesplit/commit/31e1c0af17644f2691631f195fafa26e2e0ce3d9))
+* set custom date of a expense ([914b9af](https://github.com/julian-alarcon/dothesplit/commit/914b9af5bd28cffe9537de1ad7345a746a1b74ee))
+* transfer ownership ([e7eb5bf](https://github.com/julian-alarcon/dothesplit/commit/e7eb5bf19bc29455f8059a28595242b8cea05c87))
+* **web,api,db:** introduce timezone management and setting ([88f9793](https://github.com/julian-alarcon/dothesplit/commit/88f979364cd4642d159674f2becffb9fe075e270))
+* **web,api:** added pagination to the activity ([1412be0](https://github.com/julian-alarcon/dothesplit/commit/1412be0e1ea9a18005ddd928a71df04aed6d8650))
+* **web,api:** allow more currencies ([ff1316c](https://github.com/julian-alarcon/dothesplit/commit/ff1316c0995edeb58c8e77794e3f4dd33a51782b))
+* **web,api:** implement initial setup screen ([fea7f3a](https://github.com/julian-alarcon/dothesplit/commit/fea7f3a49c4b6dbaedcda08fb0666a40f9580693))
+* **web:** add icons to destructive buttons and confirm dialog for leaving a group ([34be067](https://github.com/julian-alarcon/dothesplit/commit/34be0670522604b73af54ae6d3945ecaef55ad72))
+* **web:** add theme switcher and externalize boot scripts for CSP ([058c9c2](https://github.com/julian-alarcon/dothesplit/commit/058c9c26da084b39bcc78bd687869c93054ac577))
+* **web:** adopt new field/button system across pages and tighten UX ([7f28f46](https://github.com/julian-alarcon/dothesplit/commit/7f28f46add89d7cb8be85e7e2dcc0e6ba2dbaff4))
+* **web:** allow adding members in a group creation ([e418f46](https://github.com/julian-alarcon/dothesplit/commit/e418f46078a04eae80d34b1e2573ce2bf55de1aa))
+* **web:** currency picker flag glyphs and Palestine label override ([ff67d63](https://github.com/julian-alarcon/dothesplit/commit/ff67d639811cc3181e57476452b62dc3d81eafe8))
+* **web:** email verification, change-email, notification prefs, admin SMTP password reveal + save-and-test ([b950f1d](https://github.com/julian-alarcon/dothesplit/commit/b950f1de45bd39abeaf30568d98ade5720912155))
+* **web:** enlarge expense amounts with tabular-nums for readability ([425340c](https://github.com/julian-alarcon/dothesplit/commit/425340cbe97361974504801c0879335ee953ec04))
+* **web:** floating-label fields, button utilities and shared icons ([a62c7df](https://github.com/julian-alarcon/dothesplit/commit/a62c7df679c43835dbed783c7e0d1af246686038))
+* **web:** forgot/reset password pages, admin email-only invite, drop force-password-change ([43e2bee](https://github.com/julian-alarcon/dothesplit/commit/43e2beedbe0783aa606f008b13633a8d1bf385aa))
+* **web:** render category and chrome icons via astro-icon (Font Awesome) ([495aafb](https://github.com/julian-alarcon/dothesplit/commit/495aafb0e58a004f4da6318dcd52e24876b69e10))
+* **web:** reusable .toggle component for native checkbox switches ([f6d0f41](https://github.com/julian-alarcon/dothesplit/commit/f6d0f418d6f29c3743a40d1d79ad0b2b29f1f486))
+* **web:** run as non-root and switch to npm ci ([4ceb16a](https://github.com/julian-alarcon/dothesplit/commit/4ceb16ab90fd6ab6a1e35a756d2c7fe119f61082))
+* **web:** set better distribuition of elements in wide view ([1cb36e3](https://github.com/julian-alarcon/dothesplit/commit/1cb36e3ddc1229a6e034d35644664f475777ae0c))
+* **web:** set inter font as default ([160f211](https://github.com/julian-alarcon/dothesplit/commit/160f211e168f5d6d1ae7a4bdca7847eb7dea7ed0))
+* **web:** updated categories ([b0a13f1](https://github.com/julian-alarcon/dothesplit/commit/b0a13f1dee452daba0d4daa6dcc229b9e951ca97))
+
+
+### Bug Fixes
+
+* added ui fixes ([8c7bc4d](https://github.com/julian-alarcon/dothesplit/commit/8c7bc4d560055ae1adba93860fcd98d641cbff1f))
+* **api,web:** allow any group member to delete expenses ([e556921](https://github.com/julian-alarcon/dothesplit/commit/e5569213431c2d2ca21fc28346d1e980a7f84b50))
+* **api:** fix unordered list of activity (expenses/settlements) ([ac2e1a2](https://github.com/julian-alarcon/dothesplit/commit/ac2e1a27ea9554a19f4557c398031986f0edc7ee))
+* **db:** missing cadence were added ([87fec23](https://github.com/julian-alarcon/dothesplit/commit/87fec230ee9efea51167212d3c5813e5305e5930))
+* **web:** add expenses button now is height locked ([60409f7](https://github.com/julian-alarcon/dothesplit/commit/60409f7cce137b4d939085146e450b280366bd6d))
+* **web:** buttons with same height ([97669b6](https://github.com/julian-alarcon/dothesplit/commit/97669b6b30edc0b0b2ea45787df3a3eee508a036))
+* **web:** fix changing height of modal ([0a5024f](https://github.com/julian-alarcon/dothesplit/commit/0a5024f5a4cb09b99de1336f865352b622c365b7))
+* **web:** fix position of group name ([bddc9e1](https://github.com/julian-alarcon/dothesplit/commit/bddc9e117c2c19b1c9073ecffa7f106c7c2f32a8))
+* **web:** font color inconsistencies ([e44924a](https://github.com/julian-alarcon/dothesplit/commit/e44924a8a977c5b20ac1764e4d031e4e99cbad60))
+* **web:** lock modals ([7ee9a1c](https://github.com/julian-alarcon/dothesplit/commit/7ee9a1c69b4f1d37f5e4652d880cc6d811a6b2ae))
+* **web:** missing button in the top to go back ([a2c0db1](https://github.com/julian-alarcon/dothesplit/commit/a2c0db17dfd66807ae36e1839e8bf1f3ecb667f0))
+* **web:** modal dialog show up moved scroll of page behind ([c75ff89](https://github.com/julian-alarcon/dothesplit/commit/c75ff89d48cad7fb7917d53c1a370756d0bb2171))
+* **web:** my groups organization ([345c947](https://github.com/julian-alarcon/dothesplit/commit/345c9473579d8d45e02f81894b147bde0329a0bd))
+* **web:** polish field, category trigger and header pill rendering ([95d89fc](https://github.com/julian-alarcon/dothesplit/commit/95d89fc5b2a7a9847abab7aafc458a25cf42d12d))
+* **web:** removed pattern on amount ([c91ebce](https://github.com/julian-alarcon/dothesplit/commit/c91ebcee9d83aafd84b1d61eb75900773fe42553))
+* **web:** rework category picker so trigger renders correctly in Chrome ([9f6741e](https://github.com/julian-alarcon/dothesplit/commit/9f6741e1ea5fb8675933a675a0b28fd426db55dc))
+* **web:** set alternative alert when there are missing or invalid fields ([26ebbd2](https://github.com/julian-alarcon/dothesplit/commit/26ebbd259e2344d7b5ce358e525a0c11df157441))
+* **web:** silence ts(6133) hint on admin user detail page ([d1a4eb3](https://github.com/julian-alarcon/dothesplit/commit/d1a4eb318e50cbacd12e39f2a16ffe5efcd7f301))
+* **web:** split definition was not keep, and button was not enabled when editing after changing the split ([b0ba86f](https://github.com/julian-alarcon/dothesplit/commit/b0ba86fc11f160b3ffc7b22232dcb5e8e0c1f79f))
+* **web:** wrap auth and new-group forms in a panel for input contrast ([6d1d4ee](https://github.com/julian-alarcon/dothesplit/commit/6d1d4ee2a60755c81e103c53675594ef8e7634e9))
+
+
+### Performance Improvements
+
+* **web:** drop unused Inter Italic/Bold variants (-470 KB preload) ([68a2d00](https://github.com/julian-alarcon/dothesplit/commit/68a2d0004dbe7bb3b609c428d2faf56217119326))
